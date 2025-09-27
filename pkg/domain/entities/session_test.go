@@ -7,9 +7,9 @@ import (
 
 func TestSession_IsExpired(t *testing.T) {
 	tests := []struct {
-		name      string
-		session   *Session
-		expected  bool
+		name     string
+		session  *Session
+		expected bool
 	}{
 		{
 			name: "session not expired",
@@ -45,9 +45,9 @@ func TestSession_IsExpired(t *testing.T) {
 
 func TestSession_IsActive(t *testing.T) {
 	tests := []struct {
-		name      string
-		session   *Session
-		expected  bool
+		name     string
+		session  *Session
+		expected bool
 	}{
 		{
 			name: "active session",
@@ -93,9 +93,9 @@ func TestSession_IsActive(t *testing.T) {
 
 func TestSession_CanAcceptOffer(t *testing.T) {
 	tests := []struct {
-		name      string
-		session   *Session
-		expected  bool
+		name     string
+		session  *Session
+		expected bool
 	}{
 		{
 			name: "pending session can accept offer",
@@ -141,9 +141,9 @@ func TestSession_CanAcceptOffer(t *testing.T) {
 
 func TestSession_CanAcceptAnswer(t *testing.T) {
 	tests := []struct {
-		name      string
-		session   *Session
-		expected  bool
+		name     string
+		session  *Session
+		expected bool
 	}{
 		{
 			name: "session with offer can accept answer",

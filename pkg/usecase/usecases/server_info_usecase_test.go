@@ -8,47 +8,47 @@ import (
 
 func TestServerInfoUseCase_GetServerInfo(t *testing.T) {
 	tests := []struct {
-		name           string
-		host           string
-		mockLANIP      string
-		stunServer     string
-		version        string
-		expectedHost   string
-		expectedLANIP  string
-		expectedSTUN   string
+		name            string
+		host            string
+		mockLANIP       string
+		stunServer      string
+		version         string
+		expectedHost    string
+		expectedLANIP   string
+		expectedSTUN    string
 		expectedVersion string
 	}{
 		{
-			name:           "successful server info retrieval",
-			host:           "localhost:8080",
-			mockLANIP:      "192.168.1.100",
-			stunServer:     "stun:stun.l.google.com:19302",
-			version:        "1.0.0",
-			expectedHost:   "localhost:8080",
-			expectedLANIP:  "192.168.1.100",
-			expectedSTUN:   "stun:stun.l.google.com:19302",
+			name:            "successful server info retrieval",
+			host:            "localhost:8080",
+			mockLANIP:       "192.168.1.100",
+			stunServer:      "stun:stun.l.google.com:19302",
+			version:         "1.0.0",
+			expectedHost:    "localhost:8080",
+			expectedLANIP:   "192.168.1.100",
+			expectedSTUN:    "stun:stun.l.google.com:19302",
 			expectedVersion: "1.0.0",
 		},
 		{
-			name:           "empty host",
-			host:           "",
-			mockLANIP:      "10.0.0.100",
-			stunServer:     "stun:stun.example.com:3478",
-			version:        "2.0.0",
-			expectedHost:   "",
-			expectedLANIP:  "10.0.0.100",
-			expectedSTUN:   "stun:stun.example.com:3478",
+			name:            "empty host",
+			host:            "",
+			mockLANIP:       "10.0.0.100",
+			stunServer:      "stun:stun.example.com:3478",
+			version:         "2.0.0",
+			expectedHost:    "",
+			expectedLANIP:   "10.0.0.100",
+			expectedSTUN:    "stun:stun.example.com:3478",
 			expectedVersion: "2.0.0",
 		},
 		{
-			name:           "empty LAN IP",
-			host:           "example.com:443",
-			mockLANIP:      "",
-			stunServer:     "stun:stun.l.google.com:19302",
-			version:        "1.2.3",
-			expectedHost:   "example.com:443",
-			expectedLANIP:  "",
-			expectedSTUN:   "stun:stun.l.google.com:19302",
+			name:            "empty LAN IP",
+			host:            "example.com:443",
+			mockLANIP:       "",
+			stunServer:      "stun:stun.l.google.com:19302",
+			version:         "1.2.3",
+			expectedHost:    "example.com:443",
+			expectedLANIP:   "",
+			expectedSTUN:    "stun:stun.l.google.com:19302",
 			expectedVersion: "1.2.3",
 		},
 	}

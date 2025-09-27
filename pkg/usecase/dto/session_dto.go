@@ -9,8 +9,8 @@ type CreateSessionResponse struct {
 
 // SubmitOfferRequest represents the request for submitting a WebRTC offer
 type SubmitOfferRequest struct {
-	Token string                  `json:"token"`
-	Offer *entities.WebRTCOffer   `json:"sdp"`
+	Token string                `json:"token"`
+	Offer *entities.WebRTCOffer `json:"sdp"`
 }
 
 // GetOfferRequest represents the request for getting a WebRTC offer

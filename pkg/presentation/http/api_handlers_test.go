@@ -13,31 +13,31 @@ import (
 
 func TestAPIHandlers_HandleNewToken(t *testing.T) {
 	tests := []struct {
-		name                 string
-		method               string
-		shouldFailCreate     bool
-		expectedStatusCode   int
+		name                  string
+		method                string
+		shouldFailCreate      bool
+		expectedStatusCode    int
 		expectTokenInResponse bool
 	}{
 		{
-			name:                 "successful token creation",
-			method:               "POST",
-			shouldFailCreate:     false,
-			expectedStatusCode:   200,
+			name:                  "successful token creation",
+			method:                "POST",
+			shouldFailCreate:      false,
+			expectedStatusCode:    200,
 			expectTokenInResponse: true,
 		},
 		{
-			name:                 "method not allowed",
-			method:               "GET",
-			shouldFailCreate:     false,
-			expectedStatusCode:   405,
+			name:                  "method not allowed",
+			method:                "GET",
+			shouldFailCreate:      false,
+			expectedStatusCode:    405,
 			expectTokenInResponse: false,
 		},
 		{
-			name:                 "failed token creation",
-			method:               "POST",
-			shouldFailCreate:     true,
-			expectedStatusCode:   500,
+			name:                  "failed token creation",
+			method:                "POST",
+			shouldFailCreate:      true,
+			expectedStatusCode:    500,
 			expectTokenInResponse: false,
 		},
 	}
@@ -154,24 +154,24 @@ func TestAPIHandlers_HandleOffer_POST(t *testing.T) {
 
 func TestAPIHandlers_HandleOffer_GET(t *testing.T) {
 	tests := []struct {
-		name               string
-		token              string
-		shouldFailGet      bool
-		expectedStatusCode int
+		name                  string
+		token                 string
+		shouldFailGet         bool
+		expectedStatusCode    int
 		expectOfferInResponse bool
 	}{
 		{
-			name:               "successful offer retrieval",
-			token:              "test-token",
-			shouldFailGet:      false,
-			expectedStatusCode: 200,
+			name:                  "successful offer retrieval",
+			token:                 "test-token",
+			shouldFailGet:         false,
+			expectedStatusCode:    200,
 			expectOfferInResponse: true,
 		},
 		{
-			name:               "failed offer retrieval",
-			token:              "test-token",
-			shouldFailGet:      true,
-			expectedStatusCode: 500,
+			name:                  "failed offer retrieval",
+			token:                 "test-token",
+			shouldFailGet:         true,
+			expectedStatusCode:    500,
 			expectOfferInResponse: false,
 		},
 	}
@@ -288,24 +288,24 @@ func TestAPIHandlers_HandleAnswer_POST(t *testing.T) {
 
 func TestAPIHandlers_HandleInfo(t *testing.T) {
 	tests := []struct {
-		name               string
-		host               string
-		shouldFailGet      bool
-		expectedStatusCode int
+		name                 string
+		host                 string
+		shouldFailGet        bool
+		expectedStatusCode   int
 		expectInfoInResponse bool
 	}{
 		{
-			name:               "successful info retrieval",
-			host:               "localhost:8080",
-			shouldFailGet:      false,
-			expectedStatusCode: 200,
+			name:                 "successful info retrieval",
+			host:                 "localhost:8080",
+			shouldFailGet:        false,
+			expectedStatusCode:   200,
 			expectInfoInResponse: true,
 		},
 		{
-			name:               "failed info retrieval",
-			host:               "localhost:8080",
-			shouldFailGet:      true,
-			expectedStatusCode: 500,
+			name:                 "failed info retrieval",
+			host:                 "localhost:8080",
+			shouldFailGet:        true,
+			expectedStatusCode:   500,
 			expectInfoInResponse: false,
 		},
 	}

@@ -11,20 +11,20 @@ import (
 )
 
 var (
-	ErrSessionNotFound      = errors.New("session not found")
-	ErrSessionExpired       = errors.New("session expired")
-	ErrInvalidOffer         = errors.New("invalid offer")
-	ErrInvalidAnswer        = errors.New("invalid answer")
-	ErrOfferNotFound        = errors.New("offer not found")
-	ErrAnswerNotFound       = errors.New("answer not found")
-	ErrAnswerAlreadyExists  = errors.New("answer already exists")
-	ErrSessionNotReady      = errors.New("session not ready for answer")
+	ErrSessionNotFound     = errors.New("session not found")
+	ErrSessionExpired      = errors.New("session expired")
+	ErrInvalidOffer        = errors.New("invalid offer")
+	ErrInvalidAnswer       = errors.New("invalid answer")
+	ErrOfferNotFound       = errors.New("offer not found")
+	ErrAnswerNotFound      = errors.New("answer not found")
+	ErrAnswerAlreadyExists = errors.New("answer already exists")
+	ErrSessionNotReady     = errors.New("session not ready for answer")
 )
 
 // SessionUseCase implements the session use case interface
 type SessionUseCase struct {
-	sessionRepo    interfaces.SessionRepository
-	tokenExpiry    time.Duration
+	sessionRepo interfaces.SessionRepository
+	tokenExpiry time.Duration
 }
 
 // NewSessionUseCase creates a new session use case

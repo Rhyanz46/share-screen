@@ -26,10 +26,10 @@ import (
 	"net/http"
 	"time"
 
-	"share-screen/pkg/infrastructure/template"
 	"share-screen/pkg/infrastructure/config"
 	"share-screen/pkg/infrastructure/network"
 	"share-screen/pkg/infrastructure/repository"
+	"share-screen/pkg/infrastructure/template"
 	httphandlers "share-screen/pkg/presentation/http"
 	"share-screen/pkg/usecase/usecases"
 )

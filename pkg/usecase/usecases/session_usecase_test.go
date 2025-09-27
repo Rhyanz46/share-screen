@@ -11,19 +11,19 @@ import (
 
 func TestSessionUseCase_CreateSession(t *testing.T) {
 	tests := []struct {
-		name               string
-		shouldFailCreate   bool
-		expectedError      error
+		name             string
+		shouldFailCreate bool
+		expectedError    error
 	}{
 		{
-			name:               "successful session creation",
-			shouldFailCreate:   false,
-			expectedError:      nil,
+			name:             "successful session creation",
+			shouldFailCreate: false,
+			expectedError:    nil,
 		},
 		{
-			name:               "failed session creation",
-			shouldFailCreate:   true,
-			expectedError:      nil, // We expect an error but don't check the specific type
+			name:             "failed session creation",
+			shouldFailCreate: true,
+			expectedError:    nil, // We expect an error but don't check the specific type
 		},
 	}
 
@@ -63,10 +63,10 @@ func TestSessionUseCase_CreateSession(t *testing.T) {
 
 func TestSessionUseCase_SubmitOffer(t *testing.T) {
 	tests := []struct {
-		name            string
-		request         *dto.SubmitOfferRequest
-		setupSession    func(*mocks.MockSessionRepository)
-		expectedError   error
+		name          string
+		request       *dto.SubmitOfferRequest
+		setupSession  func(*mocks.MockSessionRepository)
+		expectedError error
 	}{
 		{
 			name: "successful offer submission",
@@ -94,7 +94,7 @@ func TestSessionUseCase_SubmitOffer(t *testing.T) {
 				Token: "test-token",
 				Offer: nil,
 			},
-			setupSession: func(repo *mocks.MockSessionRepository) {},
+			setupSession:  func(repo *mocks.MockSessionRepository) {},
 			expectedError: ErrInvalidOffer,
 		},
 		{
@@ -106,7 +106,7 @@ func TestSessionUseCase_SubmitOffer(t *testing.T) {
 					SDP:  "test-sdp",
 				},
 			},
-			setupSession: func(repo *mocks.MockSessionRepository) {},
+			setupSession:  func(repo *mocks.MockSessionRepository) {},
 			expectedError: ErrInvalidOffer,
 		},
 		{
@@ -118,7 +118,7 @@ func TestSessionUseCase_SubmitOffer(t *testing.T) {
 					SDP:  "test-sdp",
 				},
 			},
-			setupSession: func(repo *mocks.MockSessionRepository) {},
+			setupSession:  func(repo *mocks.MockSessionRepository) {},
 			expectedError: ErrSessionNotFound,
 		},
 		{
@@ -270,10 +270,10 @@ func TestSessionUseCase_GetOffer(t *testing.T) {
 
 func TestSessionUseCase_SubmitAnswer(t *testing.T) {
 	tests := []struct {
-		name            string
-		request         *dto.SubmitAnswerRequest
-		setupSession    func(*mocks.MockSessionRepository)
-		expectedError   error
+		name          string
+		request       *dto.SubmitAnswerRequest
+		setupSession  func(*mocks.MockSessionRepository)
+		expectedError error
 	}{
 		{
 			name: "successful answer submission",
