@@ -214,6 +214,9 @@ func main() {
 	port := flag.String("port", "8080", "Server port")
 	stunServer := flag.String("stun", "stun:stun.l.google.com:19302", "STUN server URL")
 	tokenExpiry := flag.Duration("token-expiry", 30*time.Minute, "Token expiry duration")
+	enableHTTPS := flag.Bool("https", false, "Enable HTTPS")
+	certFile := flag.String("cert", "certs/server.crt", "Path to TLS certificate file")
+	keyFile := flag.String("key", "certs/server.key", "Path to TLS private key file")
 	flag.Parse()
 
 	// Allow environment variables to override flags
@@ -227,6 +230,15 @@ func main() {
 		if duration, err := time.ParseDuration(envExpiry); err == nil {
 			*tokenExpiry = duration
 		}
+	}
+	if envHTTPS := os.Getenv("ENABLE_HTTPS"); envHTTPS != "" {
+		*enableHTTPS = envHTTPS == "true"
+	}
+	if envCert := os.Getenv("TLS_CERT_FILE"); envCert != "" {
+		*certFile = envCert
+	}
+	if envKey := os.Getenv("TLS_KEY_FILE"); envKey != "" {
+		*keyFile = envKey
 	}
 
 	go store.gc(*tokenExpiry)
@@ -245,11 +257,11 @@ func main() {
 
 	http.HandleFunc("/assets/sender.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-		fmt.Fprint(w, updatedSenderJS)
+		w.Write([]byte(updatedSenderJS))
 	})
 	http.HandleFunc("/assets/viewer.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-		fmt.Fprint(w, updatedViewerJS)
+		w.Write([]byte(updatedViewerJS))
 	})
 	http.HandleFunc("/assets/style.css", serveCSS)
 	http.HandleFunc("/api/info", func(w http.ResponseWriter, r *http.Request) {
@@ -264,11 +276,26 @@ func main() {
 	})
 
 	addr := ":" + *port
-	log.Printf("Server listening on %s\n", addr)
+	protocol := "HTTP"
+	if *enableHTTPS {
+		protocol = "HTTPS"
+	}
+	log.Printf("%s Server listening on %s", protocol, addr)
 	log.Printf("LAN IP: %s", getLANIP())
 	log.Printf("STUN Server: %s", *stunServer)
 	log.Printf("Token Expiry: %s", *tokenExpiry)
-	if err := http.ListenAndServe(addr, nil); err != nil {
+
+	var err error
+	if *enableHTTPS {
+		log.Printf("TLS Certificate: %s", *certFile)
+		log.Printf("TLS Private Key: %s", *keyFile)
+		err = http.ListenAndServeTLS(addr, *certFile, *keyFile, nil)
+	} else {
+		log.Printf("⚠️  Running in HTTP mode - consider enabling HTTPS for production")
+		err = http.ListenAndServe(addr, nil)
+	}
+
+	if err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
@@ -338,7 +365,6 @@ func apiPostOffer(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", 405)
 	}
 }
-
 
 func apiPostAnswer(w http.ResponseWriter, r *http.Request) {
 	log.Printf("📞 API: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
@@ -429,10 +455,6 @@ func serveCSS(w http.ResponseWriter, r *http.Request) {
 
 const css = `:root{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Inter,Roboto,Arial,sans-serif}body{margin:0;background:#0b0b0c;color:#f2f3f5}.wrap{max-width:800px;margin:32px auto;padding:0 16px}.btn{background:#4b8bff;color:#fff;border:none;padding:10px 16px;border-radius:12px;font-weight:600;cursor:pointer}.btn:hover{opacity:.9}.card{background:#15161a;border:1px solid #26282e;padding:12px;border-radius:12px;margin-top:12px}.preview,.viewer{width:100%;max-height:70vh;background:#000;border-radius:12px}`
 
-func serveSenderJS(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-	fmt.Fprint(w, senderJS)
-}
 
 const senderJS = `const startBtn=document.getElementById('start');
 const preview=document.getElementById('preview');
@@ -529,10 +551,6 @@ startBtn.onclick = async ()=>{
 };
 `
 
-func serveViewerJS(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-	fmt.Fprint(w, viewerJS)
-}
 
 const viewerJS = `const v=document.getElementById('view');
 const params=new URLSearchParams(location.search);

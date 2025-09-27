@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+LICENSE
+
+# Environment files
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Certificates (exclude from image, mount as volume)
+certs/
+*.crt
+*.key
+*.pem
+
+# Scripts
+scripts/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Coverage
+*.out
+coverage.html
+
+# Vendor
+vendor/
+
+# Temporary files
+tmp/
+temp/
