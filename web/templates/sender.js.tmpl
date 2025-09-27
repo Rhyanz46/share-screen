@@ -1,0 +1,108 @@
+const startBtn = document.getElementById('start');
+const preview = document.getElementById('preview');
+const info = document.getElementById('info');
+
+async function postJSON(url, data) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json().catch(() => ({}));
+}
+
+async function getJSON(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+function waitIce(pc) {
+    if (pc.iceGatheringState === 'complete') return Promise.resolve();
+    return new Promise(res => {
+        function check() {
+            if (pc.iceGatheringState === 'complete') {
+                pc.removeEventListener('icegatheringstatechange', check);
+                res();
+            }
+        }
+        pc.addEventListener('icegatheringstatechange', check);
+    });
+}
+
+startBtn.onclick = async () => {
+    try {
+        startBtn.disabled = true;
+
+        // Check if getDisplayMedia is supported
+        console.log('navigator.mediaDevices:', navigator.mediaDevices);
+        console.log('getDisplayMedia:', navigator.mediaDevices?.getDisplayMedia);
+
+        if (!navigator.mediaDevices) {
+            throw new Error('MediaDevices API not available. Make sure you are using HTTPS or localhost.');
+        }
+
+        if (!navigator.mediaDevices.getDisplayMedia) {
+            throw new Error('getDisplayMedia not supported. Chrome 72+, Firefox 66+, or Safari 13+ required.');
+        }
+
+        // fetch server info to build a LAN URL (avoid localhost on iPhone)
+        const infoRes = await getJSON('/api/info');
+        const baseHost = infoRes.lanIP || (new URL(location.href)).hostname;
+        const baseOrigin = location.protocol + '//' + baseHost + ':' + location.port;
+
+        // 1) get token
+        const {token} = await postJSON('/api/new', {});
+
+        // 2) capture screen
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: { frameRate: { ideal: 30 }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: false
+        });
+        preview.srcObject = stream;
+
+        // 3) WebRTC PC
+        const pc = new RTCPeerConnection({iceServers: [{urls: '{{.STUNServer}}'}]});
+        stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+        // Connection status monitoring
+        pc.oniceconnectionstatechange = () => {
+            const state = pc.iceConnectionState;
+            console.log('ICE Connection State:', state);
+
+            if (state === 'connected' || state === 'completed') {
+                info.innerHTML += '<br/><span style="color: #4CAF50; font-weight: bold;">✅ Viewer Connected!</span>';
+            } else if (state === 'disconnected' || state === 'failed') {
+                info.innerHTML += '<br/><span style="color: #f44336; font-weight: bold;">❌ Viewer Disconnected</span>';
+            } else if (state === 'connecting') {
+                info.innerHTML += '<br/><span style="color: #ff9800;">🔄 Connecting to viewer...</span>';
+            }
+        };
+
+        pc.onconnectionstatechange = () => {
+            console.log('PC Connection State:', pc.connectionState);
+        };
+
+        const offer = await pc.createOffer({offerToReceiveVideo: false});
+        await pc.setLocalDescription(offer);
+        await waitIce(pc); // ensure non-trickle offer includes candidates
+
+        await fetch('/api/offer', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({token, sdp: pc.localDescription})
+        });
+
+        // show viewer URL using LAN IP
+        const viewerURL = baseOrigin + '/viewer?token=' + encodeURIComponent(token);
+        info.style.display = 'block';
+        info.innerHTML = '<b>Viewer URL:</b> <code>' + viewerURL + '</code><br/><small>Open on iPhone Safari (same Wi‑Fi)</small><br/><span style="color: #ff9800;">⏳ Waiting for viewer to connect...</span>';
+
+    } catch (error) {
+        startBtn.disabled = false;
+        info.style.display = 'block';
+        info.innerHTML = '<b style="color: red;">Error:</b> ' + error.message;
+        console.error('Screen sharing error:', error);
+    }
+};

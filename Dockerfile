@@ -15,12 +15,15 @@ RUN go mod download && go mod verify
 
 # Copy source code
 COPY main.go ./
+COPY internal/ ./internal/
+COPY pkg/ ./pkg/
+COPY web/ ./web/
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags='-w -s -extldflags "-static"' \
     -a -installsuffix cgo \
-    -o share-screen main.go
+    -o share-screen .
 
 # Final stage
 FROM scratch
@@ -33,6 +36,9 @@ COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # Copy the binary
 COPY --from=builder /app/share-screen /share-screen
+
+# Copy web templates and static files
+COPY --from=builder /app/web /web
 
 # Create non-root user (using numeric UID for scratch)
 USER 65534:65534

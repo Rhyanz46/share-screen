@@ -1,0 +1,92 @@
+const v = document.getElementById('view');
+const params = new URLSearchParams(location.search);
+const token = params.get('token');
+
+if (!token) {
+    document.body.innerHTML = '<div class="wrap"><p>Missing token. Open link from Sender page.</p></div>';
+} else {
+    start().catch(e => {
+        document.body.innerHTML = '<div class="wrap"><p>Error: ' + e + '</p></div>';
+    });
+}
+
+async function getJSON(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+}
+
+async function postJSON(url, data) {
+    const r = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json().catch(() => ({}));
+}
+
+function waitIce(pc) {
+    if (pc.iceGatheringState === 'complete') return Promise.resolve();
+    return new Promise(res => {
+        function check() {
+            if (pc.iceGatheringState === 'complete') {
+                pc.removeEventListener('icegatheringstatechange', check);
+                res();
+            }
+        }
+        pc.addEventListener('icegatheringstatechange', check);
+    });
+}
+
+async function start() {
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'card';
+    statusDiv.style.marginTop = '12px';
+    statusDiv.innerHTML = '<span style="color: #ff9800;">🔄 Connecting to sender...</span>';
+    document.querySelector('.wrap').appendChild(statusDiv);
+
+    const pc = new RTCPeerConnection({iceServers: [{urls: '{{.STUNServer}}'}]});
+
+    // Connection monitoring
+    pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        console.log('Viewer ICE State:', state);
+
+        if (state === 'connected' || state === 'completed') {
+            statusDiv.innerHTML = '<span style="color: #4CAF50; font-weight: bold;">✅ Connected! Receiving screen share</span>';
+        } else if (state === 'disconnected' || state === 'failed') {
+            statusDiv.innerHTML = '<span style="color: #f44336; font-weight: bold;">❌ Connection lost</span>';
+        } else if (state === 'connecting') {
+            statusDiv.innerHTML = '<span style="color: #ff9800;">🔄 Connecting...</span>';
+        }
+    };
+
+    pc.ontrack = (ev) => {
+        console.log('Received video track');
+        v.srcObject = ev.streams[0];
+        v.play().catch(() => {
+            // iOS may block autoplay; show a tap-to-start overlay
+            const wrap = document.createElement('div');
+            wrap.className = 'wrap';
+            wrap.innerHTML = '<button class="btn" id="tap">Tap to start</button>';
+            document.body.appendChild(wrap);
+            document.getElementById('tap').onclick = () => {
+                v.play();
+                wrap.remove();
+            };
+        });
+    };
+
+    // get offer
+    const offer = await getJSON('/api/offer?token=' + encodeURIComponent(token));
+    await pc.setRemoteDescription(offer);
+
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await waitIce(pc); // ensure non-trickle answer includes candidates
+
+    await postJSON('/api/answer', {token, sdp: pc.localDescription});
+
+    statusDiv.innerHTML = '<span style="color: #2196F3;">🔗 Handshake completed, waiting for video...</span>';
+}

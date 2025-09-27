@@ -33,6 +33,9 @@ certs/
 # Scripts
 scripts/
 
+# Web templates and static files (will be copied specifically)
+# web/
+
 # Docker
 Dockerfile
 docker-compose.yml
