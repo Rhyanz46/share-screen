@@ -143,15 +143,22 @@ Key variables:
 
 ### Commands
 ```bash
-make help           # Show all available commands
-make setup          # Setup development environment
-make build          # Build the application
-make run            # Run locally
-make test           # Run tests (33/33 tests)
-make lint           # Format and vet code
-make certs          # Generate certificates
-make docker-build   # Build Docker image
-make health         # Check service health
+make help              # Show all available commands
+make setup             # Setup development environment
+make build             # Build the application
+make run               # Run locally
+make test              # Run tests (33/33 tests)
+make test-coverage     # Run tests with coverage report
+make lint              # Format and vet code
+make certs             # Generate certificates
+make docker-build      # Build Docker image
+make health            # Check service health
+
+# Deployment commands
+make setup-deployment  # Setup GitHub Actions deployment
+make deploy-check      # Check deployment readiness
+make ci-test          # Run all CI tests locally
+make security-scan    # Run security scan
 ```
 
 ### Testing
@@ -291,20 +298,39 @@ share-screen/
 
 ## 🚀 Deployment Options
 
-### 1. Docker Compose (Simple)
+### 1. GitHub Actions CI/CD (Recommended)
+```bash
+# Setup deployment (one-time)
+make setup-deployment
+
+# Push to trigger deployment
+git push origin main
+```
+
+Automatic deployment includes:
+- ✅ **Testing** (33/33 tests)
+- ✅ **Security scanning**
+- ✅ **Docker build**
+- ✅ **SSH deployment to server**
+- ✅ **Service management**
+- ✅ **Health checks**
+
+See [Deployment Guide](.github/DEPLOYMENT.md) for detailed setup.
+
+### 2. Docker Compose (Local)
 ```bash
 docker-compose up -d
 ```
 
-### 2. Docker Swarm (Scalable)
+### 3. Docker Swarm (Scalable)
 ```bash
 docker stack deploy -c docker-compose.yml share-screen
 ```
 
-### 3. Kubernetes (Enterprise)
+### 4. Kubernetes (Enterprise)
 Create manifests based on the Docker configuration.
 
-### 4. Direct Binary (Lightweight)
+### 5. Direct Binary (Lightweight)
 ```bash
 make build
 PORT=8443 ENABLE_HTTPS=true ./bin/share-screen

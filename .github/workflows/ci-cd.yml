@@ -1,0 +1,293 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GO_VERSION: '1.23.3'
+  DOCKER_IMAGE: 'share-screen'
+  REGISTRY: 'ghcr.io'
+
+jobs:
+  # Test and Quality Assurance
+  test:
+    name: 🧪 Test & Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐹 Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: 📦 Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: 📥 Download dependencies
+      run: go mod download
+
+    - name: 🔍 Verify dependencies
+      run: go mod verify
+
+    - name: 🧹 Format check
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "❌ Code is not properly formatted:"
+          gofmt -s -l .
+          exit 1
+        fi
+        echo "✅ Code is properly formatted"
+
+    - name: 🔎 Vet check
+      run: go vet ./...
+
+    - name: 🧪 Run tests with coverage
+      run: |
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        go tool cover -html=coverage.out -o coverage.html
+
+    - name: 📊 Display test coverage
+      run: go tool cover -func=coverage.out
+
+    - name: 📤 Upload coverage reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: |
+          coverage.out
+          coverage.html
+
+    - name: 🏗️ Test build
+      run: go build -v ./...
+
+  # Security Scanning
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐹 Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: 🔍 Run Gosec Security Scanner
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: '-no-fail -fmt sarif -out gosec.sarif ./...'
+
+    - name: 📤 Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: gosec.sarif
+
+  # Build Docker Image
+  build:
+    name: 🐳 Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, security]
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐳 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: 🔐 Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 📝 Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: 🏗️ Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: 🧪 Test Docker image
+      run: |
+        docker run --rm ${{ env.REGISTRY }}/${{ github.repository }}:latest --help
+
+  # Deploy to Server (only on main branch)
+  deploy:
+    name: 🚀 Deploy to Server
+    runs-on: ubuntu-latest
+    needs: [test, security, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: 🌐 Add server to known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+    - name: 📂 Create deployment directory
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
+          sudo mkdir -p ${{ secrets.DEPLOY_PATH }}
+          sudo chown ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ secrets.DEPLOY_PATH }}
+        "
+
+    - name: 📤 Copy files to server
+      run: |
+        rsync -avz --delete \
+          --exclude='.git' \
+          --exclude='coverage.*' \
+          --exclude='*.test' \
+          ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEPLOY_PATH }}/
+
+    - name: 🏗️ Build application on server
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
+          cd ${{ secrets.DEPLOY_PATH }}
+          go mod download
+          go build -o bin/share-screen .
+        "
+
+    - name: 🔧 Setup systemd service
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
+          sudo tee /etc/systemd/system/share-screen.service > /dev/null << 'EOF'
+        [Unit]
+        Description=Share Screen Application
+        After=network.target
+
+        [Service]
+        Type=simple
+        User=${{ secrets.SSH_USER }}
+        WorkingDirectory=${{ secrets.DEPLOY_PATH }}
+        ExecStart=${{ secrets.DEPLOY_PATH }}/bin/share-screen
+        Environment=PORT=8080
+        Environment=ENABLE_HTTPS=true
+        Environment=TLS_CERT_FILE=${{ secrets.DEPLOY_PATH }}/certs/server.crt
+        Environment=TLS_KEY_FILE=${{ secrets.DEPLOY_PATH }}/certs/server.key
+        Environment=STUN_SERVER=stun:stun.l.google.com:19302
+        Environment=TOKEN_EXPIRY=30m
+        Restart=always
+        RestartSec=5
+        StandardOutput=journal
+        StandardError=journal
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+        "
+
+    - name: 🔐 Generate SSL certificates
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
+          cd ${{ secrets.DEPLOY_PATH }}
+          if [ ! -f certs/server.crt ]; then
+            mkdir -p certs
+            chmod +x scripts/generate-certs.sh
+            ./scripts/generate-certs.sh
+          fi
+        "
+
+    - name: 🔄 Restart service
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
+          sudo systemctl daemon-reload
+          sudo systemctl enable share-screen
+          sudo systemctl restart share-screen
+          sleep 5
+          sudo systemctl status share-screen
+        "
+
+    - name: 🩺 Health check
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
+          # Wait for service to start
+          sleep 10
+
+          # Check if service is running
+          if sudo systemctl is-active --quiet share-screen; then
+            echo '✅ Service is running'
+          else
+            echo '❌ Service failed to start'
+            sudo journalctl -u share-screen --no-pager -l
+            exit 1
+          fi
+
+          # Check if port is listening
+          if ss -tlnp | grep :8080; then
+            echo '✅ Application is listening on port 8080'
+          else
+            echo '❌ Application is not listening on expected port'
+            exit 1
+          fi
+        "
+
+    - name: 📊 Deployment Summary
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        echo "📅 Deployed at: $(date)"
+        echo "🌐 Server: ${{ secrets.SERVER_HOST }}"
+        echo "📂 Path: ${{ secrets.DEPLOY_PATH }}"
+        echo "🚀 Service: share-screen.service"
+
+  # Notification
+  notify:
+    name: 📢 Notify Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always() && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: 📢 Send notification
+      uses: 8398a7/action-slack@v3
+      if: env.SLACK_WEBHOOK != ''
+      with:
+        status: ${{ needs.deploy.result }}
+        channel: '#deployments'
+        text: |
+          🚀 Share Screen deployment ${{ needs.deploy.result }}
+          📅 Branch: ${{ github.ref_name }}
+          👤 Author: ${{ github.actor }}
+          📝 Commit: ${{ github.event.head_commit.message }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

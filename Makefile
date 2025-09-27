@@ -116,3 +116,43 @@ setup: ## Setup development environment
 	@echo "1. Edit .env file for your configuration"
 	@echo "2. Run 'make certs' to generate certificates for HTTPS"
 	@echo "3. Run 'make start' for HTTP or 'make start-https' for HTTPS"
+
+# Deployment commands
+setup-deployment: ## Setup GitHub Actions deployment configuration
+	@echo "Setting up deployment configuration..."
+	@chmod +x scripts/setup-deployment.sh
+	@./scripts/setup-deployment.sh
+
+test-coverage: ## Run tests with coverage report
+	@echo "Running tests with coverage..."
+	@go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+security-scan: ## Run security scan (requires gosec)
+	@echo "Running security scan..."
+	@if command -v gosec > /dev/null; then \
+		gosec ./...; \
+	else \
+		echo "Install gosec: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest"; \
+	fi
+
+ci-test: test-coverage security-scan ## Run all CI tests locally
+
+deploy-check: ## Check deployment readiness
+	@echo "Checking deployment readiness..."
+	@echo "✅ Checking project structure..."
+	@test -f main.go || (echo "❌ main.go not found" && exit 1)
+	@test -d .github/workflows || (echo "❌ .github/workflows not found" && exit 1)
+	@echo "✅ Checking scripts..."
+	@test -x scripts/generate-certs.sh || (echo "❌ scripts/generate-certs.sh not executable" && exit 1)
+	@test -x scripts/setup-deployment.sh || (echo "❌ scripts/setup-deployment.sh not executable" && exit 1)
+	@echo "✅ Running tests..."
+	@go test ./... > /dev/null || (echo "❌ Tests failing" && exit 1)
+	@echo "✅ All checks passed! Ready for deployment."
+
+# Quick deployment test
+deploy-test: build ## Test deployment locally
+	@echo "Testing deployment locally..."
+	@./bin/share-screen --help || (echo "❌ Binary not working" && exit 1)
+	@echo "✅ Local deployment test passed"
