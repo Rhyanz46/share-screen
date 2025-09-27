@@ -129,9 +129,16 @@ jobs:
 
         # Check for unused dependencies
         go mod tidy
-        if ! git diff --quiet go.mod go.sum; then
-          echo "⚠️ go.mod/go.sum not tidy"
-          git diff go.mod go.sum
+        if ! git diff --quiet go.mod; then
+          echo "⚠️ go.mod not tidy"
+          git diff go.mod
+          exit 1
+        fi
+
+        # Check go.sum only if it exists
+        if [ -f go.sum ] && ! git diff --quiet go.sum; then
+          echo "⚠️ go.sum not tidy"
+          git diff go.sum
           exit 1
         fi
 
