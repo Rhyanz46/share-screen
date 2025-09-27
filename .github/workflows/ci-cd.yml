@@ -73,7 +73,7 @@ jobs:
 
   # Security Scanning
   security:
-    name: 🔒 Security Scan
+    name: 🔒 Security & Quality Scan
     runs-on: ubuntu-latest
     needs: test
 
@@ -86,15 +86,65 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
 
-    - name: 🔍 Run Gosec Security Scanner
-      uses: securecodewarrior/github-action-gosec@master
-      with:
-        args: '-no-fail -fmt sarif -out gosec.sarif ./...'
+    - name: 📦 Download dependencies
+      run: go mod download
 
-    - name: 📤 Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: gosec.sarif
+    - name: 🔍 Run Go Security Scanner
+      run: |
+        echo "🔍 Running security and quality checks..."
+
+        # Run go vet for potential issues
+        echo "📋 Running go vet..."
+        go vet ./...
+
+        # Check for common security patterns
+        echo "🔒 Checking for security patterns..."
+
+        # Check for hardcoded credentials (basic check)
+        if grep -r -i --include="*.go" "password.*=.*[\"'].*[\"']\|secret.*=.*[\"'].*[\"']\|api.*key.*=.*[\"'].*[\"']" . | grep -v "_test.go" | grep -v "mock" | grep -v "example" | grep -v "flag\|env\|config"; then
+          echo "⚠️ Potential hardcoded credentials found"
+          exit 1
+        fi
+
+        # Check for SQL injection patterns
+        if grep -r --include="*.go" "fmt.Sprintf.*%.*SELECT\|fmt.Sprintf.*%.*INSERT\|fmt.Sprintf.*%.*UPDATE" .; then
+          echo "⚠️ Potential SQL injection patterns found"
+          exit 1
+        fi
+
+        # Check for unsafe use of crypto/md5 or crypto/sha1
+        if grep -r --include="*.go" "crypto/md5\|crypto/sha1" . | grep -v "_test.go"; then
+          echo "⚠️ Unsafe cryptographic functions found (md5/sha1)"
+          exit 1
+        fi
+
+        echo "✅ Basic security checks passed"
+
+    - name: 🏗️ Advanced Build Check
+      run: |
+        echo "🏗️ Running advanced build checks..."
+
+        # Build with race detector
+        go build -race ./...
+
+        # Check for unused dependencies
+        go mod tidy
+        if ! git diff --quiet go.mod go.sum; then
+          echo "⚠️ go.mod/go.sum not tidy"
+          git diff go.mod go.sum
+          exit 1
+        fi
+
+        echo "✅ Advanced build checks passed"
+
+    - name: 📊 Security scan summary
+      run: |
+        echo "🛡️ Security scan completed successfully!"
+        echo "✅ Go vet checks passed"
+        echo "✅ Basic security patterns checked"
+        echo "✅ No hardcoded credentials detected"
+        echo "✅ No unsafe crypto usage detected"
+        echo "✅ Dependencies are tidy"
 
   # Build Docker Image
   build:

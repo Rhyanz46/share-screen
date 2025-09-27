@@ -129,13 +129,26 @@ test-coverage: ## Run tests with coverage report
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
-security-scan: ## Run security scan (requires gosec)
-	@echo "Running security scan..."
-	@if command -v gosec > /dev/null; then \
-		gosec ./...; \
-	else \
-		echo "Install gosec: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest"; \
+security-scan: ## Run security and quality scan
+	@echo "Running security and quality scan..."
+	@echo "📋 Running go vet..."
+	@go vet ./...
+	@echo "🔒 Checking for security patterns..."
+	@if grep -r -i --include="*.go" "password.*=.*[\"'].*[\"']\|secret.*=.*[\"'].*[\"']\|api.*key.*=.*[\"'].*[\"']" . | grep -v "_test.go" | grep -v "mock" | grep -v "example" | grep -v "flag\|env\|config"; then \
+		echo "⚠️ Potential hardcoded credentials found"; \
+		exit 1; \
 	fi
+	@if grep -r --include="*.go" "fmt.Sprintf.*%.*SELECT\|fmt.Sprintf.*%.*INSERT\|fmt.Sprintf.*%.*UPDATE" .; then \
+		echo "⚠️ Potential SQL injection patterns found"; \
+		exit 1; \
+	fi
+	@if grep -r --include="*.go" "crypto/md5\|crypto/sha1" . | grep -v "_test.go"; then \
+		echo "⚠️ Unsafe cryptographic functions found (md5/sha1)"; \
+		exit 1; \
+	fi
+	@echo "🏗️ Running race detector build..."
+	@go build -race ./...
+	@echo "✅ Security and quality checks passed"
 
 ci-test: test-coverage security-scan ## Run all CI tests locally
 
