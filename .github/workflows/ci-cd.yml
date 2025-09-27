@@ -218,8 +218,7 @@ jobs:
     - name: 📂 Create deployment directory
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
-          sudo mkdir -p ${{ secrets.DEPLOY_PATH }}
-          sudo chown ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} ${{ secrets.DEPLOY_PATH }}
+          mkdir -p ${{ secrets.DEPLOY_PATH }}
         "
 
     - name: 📤 Copy files to server
@@ -228,42 +227,24 @@ jobs:
           --exclude='.git' \
           --exclude='coverage.*' \
           --exclude='*.test' \
+          --exclude='bin/' \
           ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEPLOY_PATH }}/
 
-    - name: 🏗️ Build application on server
+    - name: 🐳 Setup Docker Compose deployment
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
           cd ${{ secrets.DEPLOY_PATH }}
-          go mod download
-          go build -o bin/share-screen .
-        "
 
-    - name: 🔧 Setup systemd service
-      run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
-          sudo tee /etc/systemd/system/share-screen.service > /dev/null << 'EOF'
-        [Unit]
-        Description=Share Screen Application
-        After=network.target
-
-        [Service]
-        Type=simple
-        User=${{ secrets.SSH_USER }}
-        WorkingDirectory=${{ secrets.DEPLOY_PATH }}
-        ExecStart=${{ secrets.DEPLOY_PATH }}/bin/share-screen
-        Environment=PORT=8080
-        Environment=ENABLE_HTTPS=true
-        Environment=TLS_CERT_FILE=${{ secrets.DEPLOY_PATH }}/certs/server.crt
-        Environment=TLS_KEY_FILE=${{ secrets.DEPLOY_PATH }}/certs/server.key
-        Environment=STUN_SERVER=stun:stun.l.google.com:19302
-        Environment=TOKEN_EXPIRY=30m
-        Restart=always
-        RestartSec=5
-        StandardOutput=journal
-        StandardError=journal
-
-        [Install]
-        WantedBy=multi-user.target
+          # Create .env file for production
+          cat > .env << 'EOF'
+        PORT=8080
+        HTTP_PORT=8080
+        HTTPS_PORT=8443
+        ENABLE_HTTPS=true
+        STUN_SERVER=stun:stun.l.google.com:19302
+        TOKEN_EXPIRY=30m
+        TLS_CERT_FILE=/certs/server.crt
+        TLS_KEY_FILE=/certs/server.key
         EOF
         "
 
@@ -278,28 +259,32 @@ jobs:
           fi
         "
 
-    - name: 🔄 Restart service
+    - name: 🚀 Deploy with Docker Compose
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
-          sudo systemctl daemon-reload
-          sudo systemctl enable share-screen
-          sudo systemctl restart share-screen
-          sleep 5
-          sudo systemctl status share-screen
+          cd ${{ secrets.DEPLOY_PATH }}
+
+          # Stop existing containers
+          docker compose down || true
+
+          # Build and start containers
+          docker compose up -d --build
+
+          # Wait for containers to be ready
+          sleep 15
         "
 
     - name: 🩺 Health check
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
-          # Wait for service to start
-          sleep 10
+          cd ${{ secrets.DEPLOY_PATH }}
 
-          # Check if service is running
-          if sudo systemctl is-active --quiet share-screen; then
-            echo '✅ Service is running'
+          # Check if containers are running
+          if docker compose ps | grep -q 'Up'; then
+            echo '✅ Docker containers are running'
           else
-            echo '❌ Service failed to start'
-            sudo journalctl -u share-screen --no-pager -l
+            echo '❌ Docker containers failed to start'
+            docker compose logs
             exit 1
           fi
 
@@ -310,6 +295,13 @@ jobs:
             echo '❌ Application is not listening on expected port'
             exit 1
           fi
+
+          # Test HTTP endpoint
+          if curl -f -s http://localhost:8080/ > /dev/null 2>&1; then
+            echo '✅ HTTP endpoint is responding'
+          else
+            echo '⚠️ HTTP endpoint test failed (might be expected if app requires specific paths)'
+          fi
         "
 
     - name: 📊 Deployment Summary
@@ -318,7 +310,9 @@ jobs:
         echo "📅 Deployed at: $(date)"
         echo "🌐 Server: ${{ secrets.SERVER_HOST }}"
         echo "📂 Path: ${{ secrets.DEPLOY_PATH }}"
-        echo "🚀 Service: share-screen.service"
+        echo "🐳 Deployment: Docker Compose"
+        echo "📱 HTTP: http://${{ secrets.SERVER_HOST }}:8080"
+        echo "🔒 HTTPS: https://${{ secrets.SERVER_HOST }}:8443"
 
   # Notification
   notify:

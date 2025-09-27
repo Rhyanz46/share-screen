@@ -68,75 +68,72 @@ jobs:
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.STAGING_SERVER_HOST }} >> ~/.ssh/known_hosts
 
-    - name: 📤 Deploy to staging server
+    - name: 📂 Create staging deployment directory
       run: |
         ssh ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_HOST }} "
-          # Create deployment directory
-          sudo mkdir -p ${{ secrets.STAGING_DEPLOY_PATH }}
-          sudo chown ${{ secrets.STAGING_SSH_USER }}:${{ secrets.STAGING_SSH_USER }} ${{ secrets.STAGING_DEPLOY_PATH }}
+          mkdir -p ${{ secrets.STAGING_DEPLOY_PATH }}
         "
 
-        # Copy files
+    - name: 📤 Copy files to staging server
+      run: |
         rsync -avz --delete \
           --exclude='.git' \
           --exclude='coverage.*' \
           --exclude='*.test' \
+          --exclude='bin/' \
           ./ ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_HOST }}:${{ secrets.STAGING_DEPLOY_PATH }}/
 
-        # Build and deploy
+    - name: 🔐 Generate SSL certificates for staging
+      run: |
         ssh ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_HOST }} "
           cd ${{ secrets.STAGING_DEPLOY_PATH }}
-
-          # Build application
-          go mod download
-          go build -o bin/share-screen .
-
-          # Generate certificates if needed
           if [ ! -f certs/server.crt ]; then
             mkdir -p certs
             chmod +x scripts/generate-certs.sh
             ./scripts/generate-certs.sh
           fi
+        "
 
-          # Setup staging systemd service
-          sudo tee /etc/systemd/system/share-screen-staging.service > /dev/null << 'EOF'
-        [Unit]
-        Description=Share Screen Application (Staging)
-        After=network.target
+    - name: 🐳 Setup staging Docker Compose
+      run: |
+        ssh ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_HOST }} "
+          cd ${{ secrets.STAGING_DEPLOY_PATH }}
 
-        [Service]
-        Type=simple
-        User=${{ secrets.STAGING_SSH_USER }}
-        WorkingDirectory=${{ secrets.STAGING_DEPLOY_PATH }}
-        ExecStart=${{ secrets.STAGING_DEPLOY_PATH }}/bin/share-screen
-        Environment=PORT=8081
-        Environment=ENABLE_HTTPS=true
-        Environment=TLS_CERT_FILE=${{ secrets.STAGING_DEPLOY_PATH }}/certs/server.crt
-        Environment=TLS_KEY_FILE=${{ secrets.STAGING_DEPLOY_PATH }}/certs/server.key
-        Environment=STUN_SERVER=stun:stun.l.google.com:19302
-        Environment=TOKEN_EXPIRY=15m
-        Restart=always
-        RestartSec=5
-        StandardOutput=journal
-        StandardError=journal
-
-        [Install]
-        WantedBy=multi-user.target
+          # Create .env file for staging
+          cat > .env << 'EOF'
+        PORT=8081
+        HTTP_PORT=8081
+        HTTPS_PORT=8444
+        ENABLE_HTTPS=true
+        STUN_SERVER=stun:stun.l.google.com:19302
+        TOKEN_EXPIRY=15m
+        TLS_CERT_FILE=/certs/server.crt
+        TLS_KEY_FILE=/certs/server.key
         EOF
+        "
 
-          # Restart staging service
-          sudo systemctl daemon-reload
-          sudo systemctl enable share-screen-staging
-          sudo systemctl restart share-screen-staging
+    - name: 🚀 Deploy staging with Docker Compose
+      run: |
+        ssh ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_HOST }} "
+          cd ${{ secrets.STAGING_DEPLOY_PATH }}
 
-          # Wait and check status
-          sleep 5
-          if sudo systemctl is-active --quiet share-screen-staging; then
+          # Stop existing containers
+          docker compose down || true
+
+          # Build and start containers with staging ports
+          docker compose up -d --build
+
+          # Wait for containers to be ready
+          sleep 15
+
+          # Check if containers are running
+          if docker compose ps | grep -q 'Up'; then
             echo '✅ Staging deployment successful'
-            echo '🌐 Staging URL: http://${{ secrets.STAGING_SERVER_HOST }}:8081'
+            echo '🌐 Staging HTTP: http://${{ secrets.STAGING_SERVER_HOST }}:8081'
+            echo '🔒 Staging HTTPS: https://${{ secrets.STAGING_SERVER_HOST }}:8444'
           else
             echo '❌ Staging deployment failed'
-            sudo journalctl -u share-screen-staging --no-pager -l
+            docker compose logs
             exit 1
           fi
         "
@@ -144,6 +141,9 @@ jobs:
     - name: 📊 Staging deployment summary
       run: |
         echo "🎭 Staging deployment completed!"
-        echo "🌐 URL: http://${{ secrets.STAGING_SERVER_HOST }}:8081"
-        echo "🌐 HTTPS: https://${{ secrets.STAGING_SERVER_HOST }}:8444"
         echo "📅 Deployed at: $(date)"
+        echo "🌐 Server: ${{ secrets.STAGING_SERVER_HOST }}"
+        echo "📂 Path: ${{ secrets.STAGING_DEPLOY_PATH }}"
+        echo "🐳 Deployment: Docker Compose"
+        echo "📱 HTTP: http://${{ secrets.STAGING_SERVER_HOST }}:8081"
+        echo "🔒 HTTPS: https://${{ secrets.STAGING_SERVER_HOST }}:8444"
