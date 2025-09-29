@@ -182,7 +182,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ github.repository }}
+        images: ${{ env.REGISTRY }}/rhyanz46/${{ env.DOCKER_IMAGE }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
@@ -202,7 +202,7 @@ jobs:
 
     - name: 🧪 Test Docker image
       run: |
-        docker run --rm ${{ env.REGISTRY }}/${{ github.repository }}:latest --help
+        docker run --rm ${{ env.REGISTRY }}/rhyanz46/${{ env.DOCKER_IMAGE }}:latest --help
 
   # Deploy to Server (only on main branch)
   deploy:
