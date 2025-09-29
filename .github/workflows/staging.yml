@@ -83,34 +83,6 @@ jobs:
           --exclude='bin/' \
           ./ ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_HOST }}:${{ secrets.STAGING_DEPLOY_PATH }}/
 
-    - name: 🔐 Generate SSL certificates for staging
-      run: |
-        ssh ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_HOST }} "
-          cd ${{ secrets.STAGING_DEPLOY_PATH }}
-          if [ ! -f certs/server.crt ]; then
-            mkdir -p certs
-            chmod +x scripts/generate-certs.sh
-            ./scripts/generate-certs.sh
-          fi
-        "
-
-    - name: 🐳 Setup staging Docker Compose
-      run: |
-        ssh ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_HOST }} "
-          cd ${{ secrets.STAGING_DEPLOY_PATH }}
-
-          # Create .env file for staging
-          cat > .env << 'EOF'
-        PORT=8081
-        HTTP_PORT=8081
-        HTTPS_PORT=8444
-        ENABLE_HTTPS=true
-        STUN_SERVER=stun:stun.l.google.com:19302
-        TOKEN_EXPIRY=15m
-        TLS_CERT_FILE=/certs/server.crt
-        TLS_KEY_FILE=/certs/server.key
-        EOF
-        "
 
     - name: 🚀 Deploy staging with Docker Compose
       run: |

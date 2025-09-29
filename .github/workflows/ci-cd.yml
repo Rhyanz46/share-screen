@@ -241,34 +241,6 @@ jobs:
           --exclude='bin/' \
           ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEPLOY_PATH }}/
 
-    - name: 🐳 Setup Docker Compose deployment
-      run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
-          cd ${{ secrets.DEPLOY_PATH }}
-
-          # Create .env file for production
-          cat > .env << 'EOF'
-        PORT=8080
-        HTTP_PORT=8080
-        HTTPS_PORT=8443
-        ENABLE_HTTPS=true
-        STUN_SERVER=stun:stun.l.google.com:19302
-        TOKEN_EXPIRY=30m
-        TLS_CERT_FILE=/certs/server.crt
-        TLS_KEY_FILE=/certs/server.key
-        EOF
-        "
-
-    - name: 🔐 Generate SSL certificates
-      run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
-          cd ${{ secrets.DEPLOY_PATH }}
-          if [ ! -f certs/server.crt ]; then
-            mkdir -p certs
-            chmod +x scripts/generate-certs.sh
-            ./scripts/generate-certs.sh
-          fi
-        "
 
     - name: 🚀 Deploy with Docker Compose
       run: |
