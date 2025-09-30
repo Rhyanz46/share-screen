@@ -16,10 +16,88 @@ env:
   REGISTRY: 'ghcr.io'
 
 jobs:
+  # Environment Dependencies Check
+  check-env:
+    name: 🔍 Check Environment Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy-prod: ${{ steps.check-secrets.outputs.should-deploy-prod }}
+      should-deploy-staging: ${{ steps.check-secrets.outputs.should-deploy-staging }}
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔍 Check required secrets and environment
+      id: check-secrets
+      run: |
+        echo "🔍 Checking environment dependencies..."
+
+        # Initialize deployment flags
+        SHOULD_DEPLOY_PROD="false"
+        SHOULD_DEPLOY_STAGING="false"
+
+        echo "📋 Branch: ${{ github.ref_name }}"
+        echo "📋 Event: ${{ github.event_name }}"
+
+        # Check if we should attempt production deployment
+        if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" == "push" ]]; then
+          echo "🎯 Production deployment conditions met, checking secrets..."
+
+          # Check production secrets
+          MISSING_PROD_SECRETS=""
+          if [ -z "${{ secrets.SSH_USER }}" ]; then MISSING_PROD_SECRETS="$MISSING_PROD_SECRETS SSH_USER"; fi
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then MISSING_PROD_SECRETS="$MISSING_PROD_SECRETS SSH_PRIVATE_KEY"; fi
+          if [ -z "${{ secrets.SERVER_HOST }}" ]; then MISSING_PROD_SECRETS="$MISSING_PROD_SECRETS SERVER_HOST"; fi
+          if [ -z "${{ secrets.DEPLOY_PATH }}" ]; then MISSING_PROD_SECRETS="$MISSING_PROD_SECRETS DEPLOY_PATH"; fi
+
+          if [ -n "$MISSING_PROD_SECRETS" ]; then
+            echo "❌ Production deployment DISABLED - Missing required secrets:$MISSING_PROD_SECRETS"
+            echo "📖 Please configure these secrets in GitHub Settings → Secrets and variables → Actions"
+          else
+            echo "✅ Production deployment ENABLED - All required secrets configured"
+            SHOULD_DEPLOY_PROD="true"
+          fi
+        else
+          echo "⏭️ Production deployment skipped (not main branch push)"
+        fi
+
+        # Check if we should attempt staging deployment
+        if [[ "${{ github.ref }}" == "refs/heads/develop" && "${{ github.event_name }}" == "push" ]] || [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+          echo "🎯 Staging deployment conditions met, checking secrets..."
+
+          # Check staging secrets
+          MISSING_STAGING_SECRETS=""
+          if [ -z "${{ secrets.STAGING_SSH_USER }}" ]; then MISSING_STAGING_SECRETS="$MISSING_STAGING_SECRETS STAGING_SSH_USER"; fi
+          if [ -z "${{ secrets.STAGING_SSH_PRIVATE_KEY }}" ]; then MISSING_STAGING_SECRETS="$MISSING_STAGING_SECRETS STAGING_SSH_PRIVATE_KEY"; fi
+          if [ -z "${{ secrets.STAGING_SERVER_HOST }}" ]; then MISSING_STAGING_SECRETS="$MISSING_STAGING_SECRETS STAGING_SERVER_HOST"; fi
+          if [ -z "${{ secrets.STAGING_DEPLOY_PATH }}" ]; then MISSING_STAGING_SECRETS="$MISSING_STAGING_SECRETS STAGING_DEPLOY_PATH"; fi
+
+          if [ -n "$MISSING_STAGING_SECRETS" ]; then
+            echo "❌ Staging deployment DISABLED - Missing required secrets:$MISSING_STAGING_SECRETS"
+            echo "📖 Please configure these secrets in GitHub Settings → Secrets and variables → Actions"
+          else
+            echo "✅ Staging deployment ENABLED - All required secrets configured"
+            SHOULD_DEPLOY_STAGING="true"
+          fi
+        else
+          echo "⏭️ Staging deployment skipped (not develop branch push or force deploy)"
+        fi
+
+        # Set outputs
+        echo "should-deploy-prod=$SHOULD_DEPLOY_PROD" >> $GITHUB_OUTPUT
+        echo "should-deploy-staging=$SHOULD_DEPLOY_STAGING" >> $GITHUB_OUTPUT
+
+        echo ""
+        echo "🎯 Deployment Summary:"
+        echo "  Production: $SHOULD_DEPLOY_PROD"
+        echo "  Staging: $SHOULD_DEPLOY_STAGING"
+
   # Test and Quality Assurance
   test:
     name: 🧪 Test & Quality Check
     runs-on: ubuntu-latest
+    needs: check-env
 
     steps:
     - name: 📥 Checkout code
@@ -79,7 +157,7 @@ jobs:
   security:
     name: 🔒 Security & Quality Scan
     runs-on: ubuntu-latest
-    needs: test
+    needs: [check-env, test]
 
     steps:
     - name: 📥 Checkout code
@@ -161,7 +239,7 @@ jobs:
   build:
     name: 🐳 Build Docker Image
     runs-on: ubuntu-latest
-    needs: [test, security]
+    needs: [check-env, test, security]
 
     steps:
     - name: 📥 Checkout code
@@ -204,51 +282,17 @@ jobs:
       run: |
         docker run --rm ${{ env.REGISTRY }}/rhyanz46/${{ env.DOCKER_IMAGE }}:latest --help
 
-  # Deploy to Server (only on main branch)
+  # Deploy to Server (only if secrets configured)
   deploy:
     name: 🚀 Deploy to Server
     runs-on: ubuntu-latest
-    needs: [test, security, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [check-env, test, security, build]
+    if: needs.check-env.outputs.should-deploy-prod == 'true'
     environment: production
 
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-
-    - name: 🔍 Validate required secrets
-      run: |
-        echo "🔍 Validating required secrets for production deployment..."
-
-        # Check required server connection secrets
-        if [ -z "${{ secrets.SSH_USER }}" ]; then
-          echo "❌ ERROR: SSH_USER secret is not set"
-          exit 1
-        fi
-
-        if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
-          echo "❌ ERROR: SSH_PRIVATE_KEY secret is not set"
-          exit 1
-        fi
-
-        if [ -z "${{ secrets.SERVER_HOST }}" ]; then
-          echo "❌ ERROR: SERVER_HOST secret is not set"
-          exit 1
-        fi
-
-        if [ -z "${{ secrets.DEPLOY_PATH }}" ]; then
-          echo "❌ ERROR: DEPLOY_PATH secret is not set"
-          exit 1
-        fi
-
-        echo "✅ All required secrets are configured"
-        echo "📊 Optional secrets status:"
-        echo "  - PROD_PORT: ${{ secrets.PROD_PORT && '✅ Set' || '⚠️ Using default (8080)' }}"
-        echo "  - PROD_HTTP_PORT: ${{ secrets.PROD_HTTP_PORT && '✅ Set' || '⚠️ Using default (8080)' }}"
-        echo "  - PROD_HTTPS_PORT: ${{ secrets.PROD_HTTPS_PORT && '✅ Set' || '⚠️ Using default (8443)' }}"
-        echo "  - PROD_ENABLE_HTTPS: ${{ secrets.PROD_ENABLE_HTTPS && '✅ Set' || '⚠️ Using default (true)' }}"
-        echo "  - PROD_STUN_SERVER: ${{ secrets.PROD_STUN_SERVER && '✅ Set' || '⚠️ Using default' }}"
-        echo "  - PROD_TOKEN_EXPIRY: ${{ secrets.PROD_TOKEN_EXPIRY && '✅ Set' || '⚠️ Using default (30m)' }}"
 
     - name: 🔐 Setup SSH
       uses: webfactory/ssh-agent@v0.9.0
@@ -348,8 +392,8 @@ jobs:
   notify:
     name: 📢 Notify Deployment
     runs-on: ubuntu-latest
-    needs: [deploy]
-    if: always() && github.ref == 'refs/heads/main'
+    needs: [check-env, deploy]
+    if: always() && needs.check-env.outputs.should-deploy-prod == 'true'
 
     steps:
     - name: 📢 Send notification
