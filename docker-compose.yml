@@ -12,8 +12,6 @@ services:
       - STUN_SERVER=${STUN_SERVER}
       - TOKEN_EXPIRY=${TOKEN_EXPIRY}
       - ENABLE_HTTPS=true
-      - TLS_CERT_FILE=/certs/fullchain.pem
-      - TLS_KEY_FILE=/certs/privkey.pem
     volumes:
       - ./certs:/certs:ro
       - ./logs:/logs

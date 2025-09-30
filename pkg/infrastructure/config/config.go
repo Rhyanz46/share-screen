@@ -29,8 +29,8 @@ func LoadConfig() *Config {
 	stunServer := flag.String("stun", "stun:stun.l.google.com:19302", "STUN server URL")
 	tokenExpiry := flag.Duration("token-expiry", 30*time.Minute, "Token expiry duration")
 	enableHTTPS := flag.Bool("https", false, "Enable HTTPS")
-	certFile := flag.String("cert", "certs/server.crt", "Path to TLS certificate file")
-	keyFile := flag.String("key", "certs/server.key", "Path to TLS private key file")
+	certFile := flag.String("cert", "/certs/fullchain.pem", "Path to TLS certificate file")
+	keyFile := flag.String("key", "/certs/privkey.pem", "Path to TLS private key file")
 	flag.Parse()
 
 	// Override with environment variables
@@ -48,12 +48,9 @@ func LoadConfig() *Config {
 	if envHTTPS := os.Getenv("ENABLE_HTTPS"); envHTTPS != "" {
 		*enableHTTPS = envHTTPS == "true"
 	}
-	if envCert := os.Getenv("TLS_CERT_FILE"); envCert != "" {
-		*certFile = envCert
-	}
-	if envKey := os.Getenv("TLS_KEY_FILE"); envKey != "" {
-		*keyFile = envKey
-	}
+	// Certificate paths are hardcoded for production deployment
+	*certFile = "/certs/fullchain.pem"
+	*keyFile = "/certs/privkey.pem"
 
 	return &Config{
 		Port:        *port,
