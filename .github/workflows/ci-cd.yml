@@ -343,8 +343,8 @@ jobs:
           echo 'ENABLE_HTTPS=true' >> .env
           echo 'STUN_SERVER=${{ secrets.PROD_STUN_SERVER }}' >> .env
           echo 'TOKEN_EXPIRY=${{ secrets.PROD_TOKEN_EXPIRY }}' >> .env
-          echo 'TLS_CERT_FILE=${{ secrets.PROD_TLS_CERT_FILE }}' >> .env
-          echo 'TLS_KEY_FILE=${{ secrets.PROD_TLS_KEY_FILE }}' >> .env
+          echo 'TLS_CERT_FILE=/certs/fullchain.pem' >> .env
+          echo 'TLS_KEY_FILE=/certs/privkey.pem' >> .env
 
           echo 'Created .env file:'
           cat .env
