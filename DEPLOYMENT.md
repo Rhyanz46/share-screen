@@ -12,15 +12,15 @@ This document describes the required GitHub secrets for deploying the share-scre
 - `SERVER_HOST` - Production server hostname/IP
 - `DEPLOY_PATH` - Deployment path on production server
 
-### Production Environment Secrets (Optional - defaults provided)
-- `PROD_PORT` - Application port (default: 8080)
-- `PROD_HTTP_PORT` - HTTP port mapping (default: 8080)
-- `PROD_HTTPS_PORT` - HTTPS port mapping (default: 8443)
-- `PROD_ENABLE_HTTPS` - Enable HTTPS (default: true)
-- `PROD_STUN_SERVER` - STUN server URL (default: stun:stun.l.google.com:19302)
-- `PROD_TOKEN_EXPIRY` - Token expiry duration (default: 30m)
-- `PROD_TLS_CERT_FILE` - TLS certificate file path (default: /certs/server.crt)
-- `PROD_TLS_KEY_FILE` - TLS private key file path (default: /certs/server.key)
+### Production Environment Secrets (REQUIRED)
+- `PROD_PORT` - Application port (e.g., 8080)
+- `PROD_HTTP_PORT` - HTTP port mapping (e.g., 8080)
+- `PROD_HTTPS_PORT` - HTTPS port mapping (e.g., 8443)
+- `PROD_ENABLE_HTTPS` - Enable HTTPS (true/false)
+- `PROD_STUN_SERVER` - STUN server URL (e.g., stun:stun.l.google.com:19302)
+- `PROD_TOKEN_EXPIRY` - Token expiry duration (e.g., 30m)
+- `PROD_TLS_CERT_FILE` - TLS certificate file path (e.g., /certs/server.crt)
+- `PROD_TLS_KEY_FILE` - TLS private key file path (e.g., /certs/server.key)
 
 ## How to Configure
 

@@ -82,14 +82,19 @@ jobs:
         echo "🎯 Deployment Summary:"
         echo "  Production: $SHOULD_DEPLOY_PROD"
 
-        # Check if production secrets are complete (using working logic from ae554f9)
-        if [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.SERVER_HOST }}" ] || [ -z "${{ secrets.DEPLOY_PATH }}" ]; then
+        # Check if ALL production secrets are complete
+        if [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.SERVER_HOST }}" ] || [ -z "${{ secrets.DEPLOY_PATH }}" ] || \
+           [ -z "${{ secrets.PROD_PORT }}" ] || [ -z "${{ secrets.PROD_HTTP_PORT }}" ] || [ -z "${{ secrets.PROD_HTTPS_PORT }}" ] || \
+           [ -z "${{ secrets.PROD_ENABLE_HTTPS }}" ] || [ -z "${{ secrets.PROD_STUN_SERVER }}" ] || [ -z "${{ secrets.PROD_TOKEN_EXPIRY }}" ] || \
+           [ -z "${{ secrets.PROD_TLS_CERT_FILE }}" ] || [ -z "${{ secrets.PROD_TLS_KEY_FILE }}" ]; then
           echo ""
           echo "❌ CRITICAL: Production environment missing required secrets!"
-          echo "📋 Required secrets: SSH_USER, SSH_PRIVATE_KEY, SERVER_HOST, DEPLOY_PATH"
+          echo "📋 Required connection secrets: SSH_USER, SSH_PRIVATE_KEY, SERVER_HOST, DEPLOY_PATH"
+          echo "📋 Required environment secrets: PROD_PORT, PROD_HTTP_PORT, PROD_HTTPS_PORT, PROD_ENABLE_HTTPS"
+          echo "📋 Required application secrets: PROD_STUN_SERVER, PROD_TOKEN_EXPIRY, PROD_TLS_CERT_FILE, PROD_TLS_KEY_FILE"
           echo ""
           echo "💥 ENVIRONMENT CHECK FAILED"
-          echo "📖 Please configure all missing secrets in GitHub Settings → Secrets and variables → Actions"
+          echo "📖 Please configure ALL required secrets in GitHub Settings → Secrets and variables → Actions"
           echo "🚫 CI/CD pipeline stopped - production environment incomplete"
           exit 1
         fi
