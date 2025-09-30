@@ -342,7 +342,7 @@ jobs:
 
           echo ''
           echo '🔧 Creating .env file from GitHub secrets...'
-          cat > .env << 'ENV_EOF'
+          cat > .env << EOF
 PORT=${{ secrets.PROD_HTTPS_PORT }}
 HTTPS_PORT=${{ secrets.PROD_HTTPS_PORT }}
 ENABLE_HTTPS=true
@@ -350,7 +350,7 @@ STUN_SERVER=${{ secrets.PROD_STUN_SERVER }}
 TOKEN_EXPIRY=${{ secrets.PROD_TOKEN_EXPIRY }}
 TLS_CERT_FILE=${{ secrets.PROD_TLS_CERT_FILE }}
 TLS_KEY_FILE=${{ secrets.PROD_TLS_KEY_FILE }}
-ENV_EOF
+EOF
 
           echo 'Created .env file:'
           cat .env
