@@ -12,12 +12,6 @@ This document describes the required GitHub secrets for deploying the share-scre
 - `SERVER_HOST` - Production server hostname/IP
 - `DEPLOY_PATH` - Deployment path on production server
 
-### Staging Server Connection Secrets (REQUIRED for staging)
-- `STAGING_SSH_USER` - SSH username for staging server
-- `STAGING_SSH_PRIVATE_KEY` - SSH private key for staging server
-- `STAGING_SERVER_HOST` - Staging server hostname/IP
-- `STAGING_DEPLOY_PATH` - Deployment path on staging server
-
 ### Production Environment Secrets (Optional - defaults provided)
 - `PROD_PORT` - Application port (default: 8080)
 - `PROD_HTTP_PORT` - HTTP port mapping (default: 8080)
@@ -27,16 +21,6 @@ This document describes the required GitHub secrets for deploying the share-scre
 - `PROD_TOKEN_EXPIRY` - Token expiry duration (default: 30m)
 - `PROD_TLS_CERT_FILE` - TLS certificate file path (default: /certs/server.crt)
 - `PROD_TLS_KEY_FILE` - TLS private key file path (default: /certs/server.key)
-
-### Staging Environment Secrets (Optional - defaults provided)
-- `STAGING_PORT` - Application port (default: 8081)
-- `STAGING_HTTP_PORT` - HTTP port mapping (default: 8081)
-- `STAGING_HTTPS_PORT` - HTTPS port mapping (default: 8444)
-- `STAGING_ENABLE_HTTPS` - Enable HTTPS (default: true)
-- `STAGING_STUN_SERVER` - STUN server URL (default: stun:stun.l.google.com:19302)
-- `STAGING_TOKEN_EXPIRY` - Token expiry duration (default: 15m)
-- `STAGING_TLS_CERT_FILE` - TLS certificate file path (default: /certs/server.crt)
-- `STAGING_TLS_KEY_FILE` - TLS private key file path (default: /certs/server.key)
 
 ## How to Configure
 
@@ -53,53 +37,55 @@ The deployment workflows will:
 
 ## Environment Dependencies Check
 
-⚠️ **CRITICAL**: The CI/CD pipeline will FAIL if ANY environment is missing required secrets.
+⚠️ **CRITICAL**: The CI/CD pipeline will FAIL if production environment is missing required secrets.
 
-The CI/CD pipeline includes comprehensive environment validation that:
+The CI/CD pipeline includes production environment validation that:
 
-1. **Checks ALL environments** (production and staging) regardless of branch
-2. **FAILS IMMEDIATELY** if ANY environment missing required secrets
+1. **Checks production environment** on every pipeline run
+2. **FAILS IMMEDIATELY** if production environment missing required secrets
 3. **Reports complete status** of all secrets and configurations
-4. **Prevents all pipeline execution** until environments are properly configured
+4. **Prevents all pipeline execution** until production environment is properly configured
 5. **Enforces complete setup** before any CI/CD operations
 
 ### Environment Check Success Example:
 ```
-🔍 Checking environment dependencies...
-🌍 Complete Environment Check:
-📊 Production Environment:
+🔍 Checking production environment dependencies...
+📋 Branch: main
+📋 Event: push
+🎯 Production deployment conditions met, checking secrets...
+✅ Production deployment ENABLED - All required secrets configured
+
+🌍 Production Environment Check:
   ✅ All required secrets configured
   - PROD_PORT: ⚠️ Using default (8080)
   - PROD_HTTP_PORT: ✅ Set
+  - PROD_HTTPS_PORT: ✅ Set
+  - PROD_ENABLE_HTTPS: ⚠️ Using default (true)
 
-📊 Staging Environment:
-  ✅ All required secrets configured
-  - STAGING_PORT: ⚠️ Using default (8081)
-  - STAGING_HTTP_PORT: ✅ Set
+🎯 Deployment Summary:
+  Production: true
 
 ✅ ENVIRONMENT CHECK PASSED
-🎯 All environments have required secrets configured
+🎯 Production environment has all required secrets configured
 ```
 
 ### Environment Check Failure Example:
 ```
-🔍 Checking environment dependencies...
-🌍 Complete Environment Check:
-📊 Production Environment:
-  ❌ Missing required secrets (deployment will be skipped)
+🔍 Checking production environment dependencies...
+📋 Branch: main
+📋 Event: push
+🎯 Production deployment conditions met, checking secrets...
+❌ Production deployment DISABLED - Missing required secrets: SSH_PRIVATE_KEY SERVER_HOST
 
-📊 Staging Environment:
-  ❌ Missing required secrets (deployment will be skipped)
+🌍 Production Environment Check:
+  ❌ Missing required secrets
 
 ❌ CRITICAL: Production environment missing required secrets!
-📋 Missing production secrets will prevent deployments to main branch
-
-❌ CRITICAL: Staging environment missing required secrets!
-📋 Missing staging secrets will prevent deployments to develop branch
+📋 Required secrets: SSH_USER, SSH_PRIVATE_KEY, SERVER_HOST, DEPLOY_PATH
 
 💥 ENVIRONMENT CHECK FAILED
 📖 Please configure all missing secrets in GitHub Settings → Secrets and variables → Actions
-🚫 CI/CD pipeline stopped - 2 environment(s) incomplete
+🚫 CI/CD pipeline stopped - production environment incomplete
 ```
 
 ## Security Benefits
