@@ -121,6 +121,38 @@ jobs:
         echo "  Production: $SHOULD_DEPLOY_PROD"
         echo "  Staging: $SHOULD_DEPLOY_STAGING"
 
+        # Fail the job if ANY environment is missing required secrets
+        MISSING_ENV_COUNT=0
+
+        # Check production secrets completeness
+        if [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.SERVER_HOST }}" ] || [ -z "${{ secrets.DEPLOY_PATH }}" ]; then
+          echo ""
+          echo "❌ CRITICAL: Production environment missing required secrets!"
+          echo "📋 Missing production secrets will prevent deployments to main branch"
+          MISSING_ENV_COUNT=$((MISSING_ENV_COUNT + 1))
+        fi
+
+        # Check staging secrets completeness
+        if [ -z "${{ secrets.STAGING_SSH_USER }}" ] || [ -z "${{ secrets.STAGING_SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.STAGING_SERVER_HOST }}" ] || [ -z "${{ secrets.STAGING_DEPLOY_PATH }}" ]; then
+          echo ""
+          echo "❌ CRITICAL: Staging environment missing required secrets!"
+          echo "📋 Missing staging secrets will prevent deployments to develop branch"
+          MISSING_ENV_COUNT=$((MISSING_ENV_COUNT + 1))
+        fi
+
+        # Fail if any environment is incomplete
+        if [ $MISSING_ENV_COUNT -gt 0 ]; then
+          echo ""
+          echo "💥 ENVIRONMENT CHECK FAILED"
+          echo "📖 Please configure all missing secrets in GitHub Settings → Secrets and variables → Actions"
+          echo "🚫 CI/CD pipeline stopped - $MISSING_ENV_COUNT environment(s) incomplete"
+          exit 1
+        fi
+
+        echo ""
+        echo "✅ ENVIRONMENT CHECK PASSED"
+        echo "🎯 All environments have required secrets configured"
+
   # Test and Quality Assurance
   test:
     name: 🧪 Test & Quality Check

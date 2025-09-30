@@ -53,33 +53,53 @@ The deployment workflows will:
 
 ## Environment Dependencies Check
 
+⚠️ **CRITICAL**: The CI/CD pipeline will FAIL if ANY environment is missing required secrets.
+
 The CI/CD pipeline includes comprehensive environment validation that:
 
 1. **Checks ALL environments** (production and staging) regardless of branch
-2. **Reports complete status** of all secrets and configurations
-3. **Fails fast** if required secrets missing for intended deployment
-4. **Prevents wasted CI time** on impossible deployments
+2. **FAILS IMMEDIATELY** if ANY environment missing required secrets
+3. **Reports complete status** of all secrets and configurations
+4. **Prevents all pipeline execution** until environments are properly configured
+5. **Enforces complete setup** before any CI/CD operations
 
-### Complete Environment Report Example:
+### Environment Check Success Example:
 ```
 🔍 Checking environment dependencies...
-📋 Branch: main
-📋 Event: push
-🎯 Production deployment conditions met, checking secrets...
-✅ Production deployment ENABLED - All required secrets configured
-
 🌍 Complete Environment Check:
 📊 Production Environment:
   ✅ All required secrets configured
   - PROD_PORT: ⚠️ Using default (8080)
   - PROD_HTTP_PORT: ✅ Set
-  - PROD_HTTPS_PORT: ✅ Set
-  - PROD_ENABLE_HTTPS: ⚠️ Using default (true)
+
+📊 Staging Environment:
+  ✅ All required secrets configured
+  - STAGING_PORT: ⚠️ Using default (8081)
+  - STAGING_HTTP_PORT: ✅ Set
+
+✅ ENVIRONMENT CHECK PASSED
+🎯 All environments have required secrets configured
+```
+
+### Environment Check Failure Example:
+```
+🔍 Checking environment dependencies...
+🌍 Complete Environment Check:
+📊 Production Environment:
+  ❌ Missing required secrets (deployment will be skipped)
 
 📊 Staging Environment:
   ❌ Missing required secrets (deployment will be skipped)
-  - STAGING_PORT: ⚠️ Using default (8081)
-  - STAGING_HTTP_PORT: ⚠️ Using default (8081)
+
+❌ CRITICAL: Production environment missing required secrets!
+📋 Missing production secrets will prevent deployments to main branch
+
+❌ CRITICAL: Staging environment missing required secrets!
+📋 Missing staging secrets will prevent deployments to develop branch
+
+💥 ENVIRONMENT CHECK FAILED
+📖 Please configure all missing secrets in GitHub Settings → Secrets and variables → Actions
+🚫 CI/CD pipeline stopped - 2 environment(s) incomplete
 ```
 
 ## Security Benefits
