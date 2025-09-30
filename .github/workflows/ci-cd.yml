@@ -341,20 +341,19 @@ jobs:
           docker compose down || true
 
           echo ''
-          echo '🔧 Setting environment variables...'
-          export PORT=${{ secrets.PROD_HTTPS_PORT }}
-          export HTTPS_PORT=${{ secrets.PROD_HTTPS_PORT }}
-          export ENABLE_HTTPS=true
-          export STUN_SERVER='${{ secrets.PROD_STUN_SERVER }}'
-          export TOKEN_EXPIRY='${{ secrets.PROD_TOKEN_EXPIRY }}'
-          export TLS_CERT_FILE='${{ secrets.PROD_TLS_CERT_FILE }}'
-          export TLS_KEY_FILE='${{ secrets.PROD_TLS_KEY_FILE }}'
+          echo '🔧 Creating .env file from GitHub secrets...'
+          cat > .env << 'ENV_EOF'
+PORT=${{ secrets.PROD_HTTPS_PORT }}
+HTTPS_PORT=${{ secrets.PROD_HTTPS_PORT }}
+ENABLE_HTTPS=true
+STUN_SERVER=${{ secrets.PROD_STUN_SERVER }}
+TOKEN_EXPIRY=${{ secrets.PROD_TOKEN_EXPIRY }}
+TLS_CERT_FILE=${{ secrets.PROD_TLS_CERT_FILE }}
+TLS_KEY_FILE=${{ secrets.PROD_TLS_KEY_FILE }}
+ENV_EOF
 
-          echo 'Environment variables set:'
-          echo 'HTTPS_PORT=' \$HTTPS_PORT
-          echo 'ENABLE_HTTPS=' \$ENABLE_HTTPS
-          echo 'TLS_CERT_FILE=' \$TLS_CERT_FILE
-          echo 'TLS_KEY_FILE=' \$TLS_KEY_FILE
+          echo 'Created .env file:'
+          cat .env
 
           echo ''
           echo '🏗️ Building and starting containers...'
