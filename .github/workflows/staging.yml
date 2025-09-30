@@ -111,8 +111,8 @@ jobs:
           # Check if containers are running
           if docker compose ps | grep -q 'Up'; then
             echo '✅ Staging deployment successful'
-            echo '🌐 Staging HTTP: http://${{ secrets.STAGING_SERVER_HOST }}:8081'
-            echo '🔒 Staging HTTPS: https://${{ secrets.STAGING_SERVER_HOST }}:8444'
+            echo '🌐 Staging HTTP: http://${{ secrets.STAGING_SERVER_HOST }}:${{ secrets.STAGING_HTTP_PORT || '8081' }}'
+            echo '🔒 Staging HTTPS: https://${{ secrets.STAGING_SERVER_HOST }}:${{ secrets.STAGING_HTTPS_PORT || '8444' }}'
           else
             echo '❌ Staging deployment failed'
             docker compose logs
@@ -127,5 +127,5 @@ jobs:
         echo "🌐 Server: ${{ secrets.STAGING_SERVER_HOST }}"
         echo "📂 Path: ${{ secrets.STAGING_DEPLOY_PATH }}"
         echo "🐳 Deployment: Docker Compose"
-        echo "📱 HTTP: http://${{ secrets.STAGING_SERVER_HOST }}:8081"
-        echo "🔒 HTTPS: https://${{ secrets.STAGING_SERVER_HOST }}:8444"
+        echo "📱 HTTP: http://${{ secrets.STAGING_SERVER_HOST }}:${{ secrets.STAGING_HTTP_PORT || '8081' }}"
+        echo "🔒 HTTPS: https://${{ secrets.STAGING_SERVER_HOST }}:${{ secrets.STAGING_HTTPS_PORT || '8444' }}"
