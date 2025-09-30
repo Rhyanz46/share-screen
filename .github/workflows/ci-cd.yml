@@ -82,47 +82,10 @@ jobs:
         echo "🎯 Deployment Summary:"
         echo "  Production: $SHOULD_DEPLOY_PROD"
 
-        # Use a more robust approach to check secrets
-        echo ""
-        echo "🔍 Checking required secrets..."
-
-        MISSING_SECRETS=0
-
-        # Check each secret using GitHub Actions conditional syntax
-        SSH_USER_SET="${{ secrets.SSH_USER != '' }}"
-        SSH_KEY_SET="${{ secrets.SSH_PRIVATE_KEY != '' }}"
-        SERVER_HOST_SET="${{ secrets.SERVER_HOST != '' }}"
-        DEPLOY_PATH_SET="${{ secrets.DEPLOY_PATH != '' }}"
-
-        echo "SSH_USER: $SSH_USER_SET"
-        echo "SSH_PRIVATE_KEY: $SSH_KEY_SET"
-        echo "SERVER_HOST: $SERVER_HOST_SET"
-        echo "DEPLOY_PATH: $DEPLOY_PATH_SET"
-
-        if [ "$SSH_USER_SET" = "false" ]; then
-          echo "❌ SSH_USER is missing"
-          MISSING_SECRETS=$((MISSING_SECRETS + 1))
-        fi
-
-        if [ "$SSH_KEY_SET" = "false" ]; then
-          echo "❌ SSH_PRIVATE_KEY is missing"
-          MISSING_SECRETS=$((MISSING_SECRETS + 1))
-        fi
-
-        if [ "$SERVER_HOST_SET" = "false" ]; then
-          echo "❌ SERVER_HOST is missing"
-          MISSING_SECRETS=$((MISSING_SECRETS + 1))
-        fi
-
-        if [ "$DEPLOY_PATH_SET" = "false" ]; then
-          echo "❌ DEPLOY_PATH is missing"
-          MISSING_SECRETS=$((MISSING_SECRETS + 1))
-        fi
-
-        # Always fail if any secrets are missing - no exceptions
-        if [ $MISSING_SECRETS -gt 0 ]; then
+        # Check if production secrets are complete (using working logic from ae554f9)
+        if [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.SERVER_HOST }}" ] || [ -z "${{ secrets.DEPLOY_PATH }}" ]; then
           echo ""
-          echo "❌ CRITICAL: Production environment missing $MISSING_SECRETS required secret(s)!"
+          echo "❌ CRITICAL: Production environment missing required secrets!"
           echo "📋 Required secrets: SSH_USER, SSH_PRIVATE_KEY, SERVER_HOST, DEPLOY_PATH"
           echo ""
           echo "💥 ENVIRONMENT CHECK FAILED"
