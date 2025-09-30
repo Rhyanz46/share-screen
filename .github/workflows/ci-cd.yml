@@ -63,7 +63,7 @@ jobs:
         fi
 
         # Check if we should attempt staging deployment
-        if [[ "${{ github.ref }}" == "refs/heads/develop" && "${{ github.event_name }}" == "push" ]] || [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+        if [[ "${{ github.ref }}" == "refs/heads/develop" && "${{ github.event_name }}" == "push" ]]; then
           echo "🎯 Staging deployment conditions met, checking secrets..."
 
           # Check staging secrets
@@ -81,8 +81,36 @@ jobs:
             SHOULD_DEPLOY_STAGING="true"
           fi
         else
-          echo "⏭️ Staging deployment skipped (not develop branch push or force deploy)"
+          echo "⏭️ Staging deployment skipped (not develop branch push)"
         fi
+
+        # Always check all environment configurations for reporting
+        echo ""
+        echo "🌍 Complete Environment Check:"
+
+        # Production environment check
+        echo "📊 Production Environment:"
+        if [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.SERVER_HOST }}" ] || [ -z "${{ secrets.DEPLOY_PATH }}" ]; then
+          echo "  ❌ Missing required secrets (deployment will be skipped)"
+        else
+          echo "  ✅ All required secrets configured"
+        fi
+        echo "  - PROD_PORT: ${{ secrets.PROD_PORT && '✅ Set' || '⚠️ Using default (8080)' }}"
+        echo "  - PROD_HTTP_PORT: ${{ secrets.PROD_HTTP_PORT && '✅ Set' || '⚠️ Using default (8080)' }}"
+        echo "  - PROD_HTTPS_PORT: ${{ secrets.PROD_HTTPS_PORT && '✅ Set' || '⚠️ Using default (8443)' }}"
+        echo "  - PROD_ENABLE_HTTPS: ${{ secrets.PROD_ENABLE_HTTPS && '✅ Set' || '⚠️ Using default (true)' }}"
+
+        # Staging environment check
+        echo "📊 Staging Environment:"
+        if [ -z "${{ secrets.STAGING_SSH_USER }}" ] || [ -z "${{ secrets.STAGING_SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.STAGING_SERVER_HOST }}" ] || [ -z "${{ secrets.STAGING_DEPLOY_PATH }}" ]; then
+          echo "  ❌ Missing required secrets (deployment will be skipped)"
+        else
+          echo "  ✅ All required secrets configured"
+        fi
+        echo "  - STAGING_PORT: ${{ secrets.STAGING_PORT && '✅ Set' || '⚠️ Using default (8081)' }}"
+        echo "  - STAGING_HTTP_PORT: ${{ secrets.STAGING_HTTP_PORT && '✅ Set' || '⚠️ Using default (8081)' }}"
+        echo "  - STAGING_HTTPS_PORT: ${{ secrets.STAGING_HTTPS_PORT && '✅ Set' || '⚠️ Using default (8444)' }}"
+        echo "  - STAGING_ENABLE_HTTPS: ${{ secrets.STAGING_ENABLE_HTTPS && '✅ Set' || '⚠️ Using default (true)' }}"
 
         # Set outputs
         echo "should-deploy-prod=$SHOULD_DEPLOY_PROD" >> $GITHUB_OUTPUT

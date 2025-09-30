@@ -51,24 +51,35 @@ The deployment workflows will:
 2. **Apply sensible defaults** if optional secrets are not provided
 3. **Pass environment variables** directly to Docker Compose
 
-## Secret Validation
+## Environment Dependencies Check
 
-The deployment workflows include automatic validation that:
+The CI/CD pipeline includes comprehensive environment validation that:
 
-1. **Checks all required secrets** before starting deployment
-2. **Fails fast** if any required secret is missing
-3. **Shows status** of optional secrets (set vs using defaults)
-4. **Prevents partial deployments** due to missing configuration
+1. **Checks ALL environments** (production and staging) regardless of branch
+2. **Reports complete status** of all secrets and configurations
+3. **Fails fast** if required secrets missing for intended deployment
+4. **Prevents wasted CI time** on impossible deployments
 
-### Validation Output Example:
+### Complete Environment Report Example:
 ```
-🔍 Validating required secrets for production deployment...
-✅ All required secrets are configured
-📊 Optional secrets status:
+🔍 Checking environment dependencies...
+📋 Branch: main
+📋 Event: push
+🎯 Production deployment conditions met, checking secrets...
+✅ Production deployment ENABLED - All required secrets configured
+
+🌍 Complete Environment Check:
+📊 Production Environment:
+  ✅ All required secrets configured
   - PROD_PORT: ⚠️ Using default (8080)
   - PROD_HTTP_PORT: ✅ Set
   - PROD_HTTPS_PORT: ✅ Set
   - PROD_ENABLE_HTTPS: ⚠️ Using default (true)
+
+📊 Staging Environment:
+  ❌ Missing required secrets (deployment will be skipped)
+  - STAGING_PORT: ⚠️ Using default (8081)
+  - STAGING_HTTP_PORT: ⚠️ Using default (8081)
 ```
 
 ## Security Benefits
