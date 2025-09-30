@@ -68,12 +68,14 @@ jobs:
         else
           echo "  ✅ All required secrets configured"
         fi
-        echo "  - PROD_PORT: ${{ secrets.PROD_PORT && '✅ Set' || '⚠️ Using default (8080)' }}"
-        echo "  - PROD_HTTP_PORT: ${{ secrets.PROD_HTTP_PORT && '✅ Set' || '⚠️ Using default (8080)' }}"
-        echo "  - PROD_HTTPS_PORT: ${{ secrets.PROD_HTTPS_PORT && '✅ Set' || '⚠️ Using default (8443)' }}"
-        echo "  - PROD_ENABLE_HTTPS: ${{ secrets.PROD_ENABLE_HTTPS && '✅ Set' || '⚠️ Using default (true)' }}"
-        echo "  - PROD_STUN_SERVER: ${{ secrets.PROD_STUN_SERVER && '✅ Set' || '⚠️ Using default' }}"
-        echo "  - PROD_TOKEN_EXPIRY: ${{ secrets.PROD_TOKEN_EXPIRY && '✅ Set' || '⚠️ Using default (30m)' }}"
+        echo "  - PROD_PORT: ${{ secrets.PROD_PORT && '✅ Set' || '❌ Missing' }}"
+        echo "  - PROD_HTTP_PORT: ${{ secrets.PROD_HTTP_PORT && '✅ Set' || '❌ Missing' }}"
+        echo "  - PROD_HTTPS_PORT: ${{ secrets.PROD_HTTPS_PORT && '✅ Set' || '❌ Missing' }}"
+        echo "  - PROD_ENABLE_HTTPS: ${{ secrets.PROD_ENABLE_HTTPS && '✅ Set' || '❌ Missing' }}"
+        echo "  - PROD_STUN_SERVER: ${{ secrets.PROD_STUN_SERVER && '✅ Set' || '❌ Missing' }}"
+        echo "  - PROD_TOKEN_EXPIRY: ${{ secrets.PROD_TOKEN_EXPIRY && '✅ Set' || '❌ Missing' }}"
+        echo "  - PROD_TLS_CERT_FILE: ${{ secrets.PROD_TLS_CERT_FILE && '✅ Set' || '❌ Missing' }}"
+        echo "  - PROD_TLS_KEY_FILE: ${{ secrets.PROD_TLS_KEY_FILE && '✅ Set' || '❌ Missing' }}"
 
         # Set output
         echo "should-deploy-prod=$SHOULD_DEPLOY_PROD" >> $GITHUB_OUTPUT
@@ -338,15 +340,15 @@ jobs:
           # Stop existing containers
           docker compose down || true
 
-          # Set environment variables from GitHub secrets
-          export PORT=${{ secrets.PROD_PORT || '8080' }}
-          export HTTP_PORT=${{ secrets.PROD_HTTP_PORT || '8080' }}
-          export HTTPS_PORT=${{ secrets.PROD_HTTPS_PORT || '8443' }}
-          export ENABLE_HTTPS=${{ secrets.PROD_ENABLE_HTTPS || 'true' }}
-          export STUN_SERVER='${{ secrets.PROD_STUN_SERVER || 'stun:stun.l.google.com:19302' }}'
-          export TOKEN_EXPIRY='${{ secrets.PROD_TOKEN_EXPIRY || '30m' }}'
-          export TLS_CERT_FILE='${{ secrets.PROD_TLS_CERT_FILE || '/certs/server.crt' }}'
-          export TLS_KEY_FILE='${{ secrets.PROD_TLS_KEY_FILE || '/certs/server.key' }}'
+          # Set environment variables from GitHub secrets (NO DEFAULTS)
+          export PORT=${{ secrets.PROD_PORT }}
+          export HTTP_PORT=${{ secrets.PROD_HTTP_PORT }}
+          export HTTPS_PORT=${{ secrets.PROD_HTTPS_PORT }}
+          export ENABLE_HTTPS=${{ secrets.PROD_ENABLE_HTTPS }}
+          export STUN_SERVER='${{ secrets.PROD_STUN_SERVER }}'
+          export TOKEN_EXPIRY='${{ secrets.PROD_TOKEN_EXPIRY }}'
+          export TLS_CERT_FILE='${{ secrets.PROD_TLS_CERT_FILE }}'
+          export TLS_KEY_FILE='${{ secrets.PROD_TLS_KEY_FILE }}'
 
           # Build and start containers with environment variables
           docker compose up -d --build
@@ -361,7 +363,7 @@ jobs:
           cd ${{ secrets.DEPLOY_PATH }}
 
           # Set port from environment
-          HEALTH_CHECK_PORT=${{ secrets.PROD_HTTP_PORT || '8080' }}
+          HEALTH_CHECK_PORT=${{ secrets.PROD_HTTP_PORT }}
 
           # Check if containers are running
           if docker compose ps | grep -q 'Up'; then
@@ -395,8 +397,8 @@ jobs:
         echo "🌐 Server: ${{ secrets.SERVER_HOST }}"
         echo "📂 Path: ${{ secrets.DEPLOY_PATH }}"
         echo "🐳 Deployment: Docker Compose"
-        echo "📱 HTTP: http://${{ secrets.SERVER_HOST }}:${{ secrets.PROD_HTTP_PORT || '8080' }}"
-        echo "🔒 HTTPS: https://${{ secrets.SERVER_HOST }}:${{ secrets.PROD_HTTPS_PORT || '8443' }}"
+        echo "📱 HTTP: http://${{ secrets.SERVER_HOST }}:${{ secrets.PROD_HTTP_PORT }}"
+        echo "🔒 HTTPS: https://${{ secrets.SERVER_HOST }}:${{ secrets.PROD_HTTPS_PORT }}"
 
   # Notification
   notify:

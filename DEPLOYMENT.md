@@ -12,7 +12,7 @@ This document describes the required GitHub secrets for deploying the share-scre
 - `SERVER_HOST` - Production server hostname/IP
 - `DEPLOY_PATH` - Deployment path on production server
 
-### Production Environment Secrets (REQUIRED)
+### Production Environment Secrets (REQUIRED - NO DEFAULTS)
 - `PROD_PORT` - Application port (e.g., 8080)
 - `PROD_HTTP_PORT` - HTTP port mapping (e.g., 8080)
 - `PROD_HTTPS_PORT` - HTTPS port mapping (e.g., 8443)
@@ -32,7 +32,7 @@ This document describes the required GitHub secrets for deploying the share-scre
 
 The deployment workflows will:
 1. **Use GitHub secrets** for environment variables (no .env file needed in production)
-2. **Apply sensible defaults** if optional secrets are not provided
+2. **Require ALL secrets** to be explicitly configured (no defaults provided)
 3. **Pass environment variables** directly to Docker Compose
 
 ## Environment Dependencies Check
@@ -57,10 +57,14 @@ The CI/CD pipeline includes production environment validation that:
 
 🌍 Production Environment Check:
   ✅ All required secrets configured
-  - PROD_PORT: ⚠️ Using default (8080)
+  - PROD_PORT: ✅ Set
   - PROD_HTTP_PORT: ✅ Set
   - PROD_HTTPS_PORT: ✅ Set
-  - PROD_ENABLE_HTTPS: ⚠️ Using default (true)
+  - PROD_ENABLE_HTTPS: ✅ Set
+  - PROD_STUN_SERVER: ✅ Set
+  - PROD_TOKEN_EXPIRY: ✅ Set
+  - PROD_TLS_CERT_FILE: ✅ Set
+  - PROD_TLS_KEY_FILE: ✅ Set
 
 🎯 Deployment Summary:
   Production: true
