@@ -377,28 +377,45 @@ jobs:
           # Set HTTPS port from environment
           HEALTH_CHECK_PORT=${{ secrets.PROD_HTTPS_PORT }}
 
+          echo '🔍 Health check using port:' \$HEALTH_CHECK_PORT
+
           # Check if containers are running
+          echo '📋 Container status:'
+          docker compose ps
+
           if docker compose ps | grep -q 'Up'; then
             echo '✅ Docker containers are running'
           else
             echo '❌ Docker containers failed to start'
+            echo '📄 Container logs:'
             docker compose logs
             exit 1
           fi
 
+          # Wait a moment for app to start
+          echo '⏳ Waiting for application to start...'
+          sleep 10
+
           # Check if port is listening
+          echo '🔍 Checking if port \$HEALTH_CHECK_PORT is listening...'
           if ss -tlnp | grep :\$HEALTH_CHECK_PORT; then
-            echo '✅ Application is listening on port '\$HEALTH_CHECK_PORT
+            echo '✅ Application is listening on port \$HEALTH_CHECK_PORT'
           else
-            echo '❌ Application is not listening on expected port '\$HEALTH_CHECK_PORT
+            echo '❌ Application is not listening on expected port \$HEALTH_CHECK_PORT'
+            echo '📄 All listening ports:'
+            ss -tlnp
+            echo '📄 Container logs:'
+            docker compose logs
             exit 1
           fi
 
           # Test HTTPS endpoint
+          echo '🌐 Testing HTTPS endpoint...'
           if curl -f -s -k https://localhost:\$HEALTH_CHECK_PORT/ > /dev/null 2>&1; then
             echo '✅ HTTPS endpoint is responding'
           else
-            echo '⚠️ HTTPS endpoint test failed (might be expected if app requires specific paths)'
+            echo '⚠️ HTTPS endpoint test failed - checking logs'
+            docker compose logs
           fi
         "
 
