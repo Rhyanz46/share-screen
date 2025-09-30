@@ -82,10 +82,41 @@ jobs:
         echo "🎯 Deployment Summary:"
         echo "  Production: $SHOULD_DEPLOY_PROD"
 
-        # Fail the job if production environment is missing required secrets
-        if [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.SERVER_HOST }}" ] || [ -z "${{ secrets.DEPLOY_PATH }}" ]; then
+        # Debug: Show actual secret values (masked for security)
+        echo ""
+        echo "🔍 Debug: Checking secret values..."
+        echo "SSH_USER: ${{ secrets.SSH_USER && 'SET' || 'NOT_SET' }}"
+        echo "SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY && 'SET' || 'NOT_SET' }}"
+        echo "SERVER_HOST: ${{ secrets.SERVER_HOST && 'SET' || 'NOT_SET' }}"
+        echo "DEPLOY_PATH: ${{ secrets.DEPLOY_PATH && 'SET' || 'NOT_SET' }}"
+
+        # Count missing secrets
+        MISSING_SECRETS=0
+
+        if [ "${{ secrets.SSH_USER }}" = "" ]; then
+          echo "❌ SSH_USER is missing"
+          MISSING_SECRETS=$((MISSING_SECRETS + 1))
+        fi
+
+        if [ "${{ secrets.SSH_PRIVATE_KEY }}" = "" ]; then
+          echo "❌ SSH_PRIVATE_KEY is missing"
+          MISSING_SECRETS=$((MISSING_SECRETS + 1))
+        fi
+
+        if [ "${{ secrets.SERVER_HOST }}" = "" ]; then
+          echo "❌ SERVER_HOST is missing"
+          MISSING_SECRETS=$((MISSING_SECRETS + 1))
+        fi
+
+        if [ "${{ secrets.DEPLOY_PATH }}" = "" ]; then
+          echo "❌ DEPLOY_PATH is missing"
+          MISSING_SECRETS=$((MISSING_SECRETS + 1))
+        fi
+
+        # Fail if any secrets are missing
+        if [ $MISSING_SECRETS -gt 0 ]; then
           echo ""
-          echo "❌ CRITICAL: Production environment missing required secrets!"
+          echo "❌ CRITICAL: Production environment missing $MISSING_SECRETS required secret(s)!"
           echo "📋 Required secrets: SSH_USER, SSH_PRIVATE_KEY, SERVER_HOST, DEPLOY_PATH"
           echo ""
           echo "💥 ENVIRONMENT CHECK FAILED"
