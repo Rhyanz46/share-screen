@@ -337,10 +337,6 @@ jobs:
           head -10 docker-compose.yml
 
           echo ''
-          echo '🛑 Stopping existing containers...'
-          docker compose down || true
-
-          echo ''
           echo '🔧 Creating .env file from GitHub secrets...'
           echo 'PORT=${{ secrets.PROD_HTTPS_PORT }}' > .env
           echo 'HTTPS_PORT=${{ secrets.PROD_HTTPS_PORT }}' >> .env
@@ -352,6 +348,10 @@ jobs:
 
           echo 'Created .env file:'
           cat .env
+
+          echo ''
+          echo '🛑 Stopping existing containers...'
+          docker compose down || true
 
           echo ''
           echo '🏗️ Building and starting containers...'
