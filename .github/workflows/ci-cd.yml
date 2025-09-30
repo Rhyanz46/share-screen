@@ -68,10 +68,7 @@ jobs:
         else
           echo "  ✅ All required secrets configured"
         fi
-        echo "  - PROD_PORT: ${{ secrets.PROD_PORT && '✅ Set' || '❌ Missing' }}"
-        echo "  - PROD_HTTP_PORT: ${{ secrets.PROD_HTTP_PORT && '✅ Set' || '❌ Missing' }}"
         echo "  - PROD_HTTPS_PORT: ${{ secrets.PROD_HTTPS_PORT && '✅ Set' || '❌ Missing' }}"
-        echo "  - PROD_ENABLE_HTTPS: ${{ secrets.PROD_ENABLE_HTTPS && '✅ Set' || '❌ Missing' }}"
         echo "  - PROD_STUN_SERVER: ${{ secrets.PROD_STUN_SERVER && '✅ Set' || '❌ Missing' }}"
         echo "  - PROD_TOKEN_EXPIRY: ${{ secrets.PROD_TOKEN_EXPIRY && '✅ Set' || '❌ Missing' }}"
         echo "  - PROD_TLS_CERT_FILE: ${{ secrets.PROD_TLS_CERT_FILE && '✅ Set' || '❌ Missing' }}"
@@ -84,16 +81,15 @@ jobs:
         echo "🎯 Deployment Summary:"
         echo "  Production: $SHOULD_DEPLOY_PROD"
 
-        # Check if ALL production secrets are complete
+        # Check if ALL production secrets are complete (HTTPS ONLY)
         if [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.SERVER_HOST }}" ] || [ -z "${{ secrets.DEPLOY_PATH }}" ] || \
-           [ -z "${{ secrets.PROD_PORT }}" ] || [ -z "${{ secrets.PROD_HTTP_PORT }}" ] || [ -z "${{ secrets.PROD_HTTPS_PORT }}" ] || \
-           [ -z "${{ secrets.PROD_ENABLE_HTTPS }}" ] || [ -z "${{ secrets.PROD_STUN_SERVER }}" ] || [ -z "${{ secrets.PROD_TOKEN_EXPIRY }}" ] || \
+           [ -z "${{ secrets.PROD_HTTPS_PORT }}" ] || [ -z "${{ secrets.PROD_STUN_SERVER }}" ] || [ -z "${{ secrets.PROD_TOKEN_EXPIRY }}" ] || \
            [ -z "${{ secrets.PROD_TLS_CERT_FILE }}" ] || [ -z "${{ secrets.PROD_TLS_KEY_FILE }}" ]; then
           echo ""
           echo "❌ CRITICAL: Production environment missing required secrets!"
           echo "📋 Required connection secrets: SSH_USER, SSH_PRIVATE_KEY, SERVER_HOST, DEPLOY_PATH"
-          echo "📋 Required environment secrets: PROD_PORT, PROD_HTTP_PORT, PROD_HTTPS_PORT, PROD_ENABLE_HTTPS"
-          echo "📋 Required application secrets: PROD_STUN_SERVER, PROD_TOKEN_EXPIRY, PROD_TLS_CERT_FILE, PROD_TLS_KEY_FILE"
+          echo "📋 Required HTTPS secrets: PROD_HTTPS_PORT, PROD_TLS_CERT_FILE, PROD_TLS_KEY_FILE"
+          echo "📋 Required application secrets: PROD_STUN_SERVER, PROD_TOKEN_EXPIRY"
           echo ""
           echo "💥 ENVIRONMENT CHECK FAILED"
           echo "📖 Please configure ALL required secrets in GitHub Settings → Secrets and variables → Actions"
@@ -340,11 +336,10 @@ jobs:
           # Stop existing containers
           docker compose down || true
 
-          # Set environment variables from GitHub secrets (NO DEFAULTS)
-          export PORT=${{ secrets.PROD_PORT }}
-          export HTTP_PORT=${{ secrets.PROD_HTTP_PORT }}
+          # Set environment variables from GitHub secrets (HTTPS ONLY)
+          export PORT=${{ secrets.PROD_HTTPS_PORT }}
           export HTTPS_PORT=${{ secrets.PROD_HTTPS_PORT }}
-          export ENABLE_HTTPS=${{ secrets.PROD_ENABLE_HTTPS }}
+          export ENABLE_HTTPS=true
           export STUN_SERVER='${{ secrets.PROD_STUN_SERVER }}'
           export TOKEN_EXPIRY='${{ secrets.PROD_TOKEN_EXPIRY }}'
           export TLS_CERT_FILE='${{ secrets.PROD_TLS_CERT_FILE }}'
@@ -362,8 +357,8 @@ jobs:
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
           cd ${{ secrets.DEPLOY_PATH }}
 
-          # Set port from environment
-          HEALTH_CHECK_PORT=${{ secrets.PROD_HTTP_PORT }}
+          # Set HTTPS port from environment
+          HEALTH_CHECK_PORT=${{ secrets.PROD_HTTPS_PORT }}
 
           # Check if containers are running
           if docker compose ps | grep -q 'Up'; then
@@ -382,11 +377,11 @@ jobs:
             exit 1
           fi
 
-          # Test HTTP endpoint
-          if curl -f -s http://localhost:\$HEALTH_CHECK_PORT/ > /dev/null 2>&1; then
-            echo '✅ HTTP endpoint is responding'
+          # Test HTTPS endpoint
+          if curl -f -s -k https://localhost:\$HEALTH_CHECK_PORT/ > /dev/null 2>&1; then
+            echo '✅ HTTPS endpoint is responding'
           else
-            echo '⚠️ HTTP endpoint test failed (might be expected if app requires specific paths)'
+            echo '⚠️ HTTPS endpoint test failed (might be expected if app requires specific paths)'
           fi
         "
 
@@ -397,7 +392,6 @@ jobs:
         echo "🌐 Server: ${{ secrets.SERVER_HOST }}"
         echo "📂 Path: ${{ secrets.DEPLOY_PATH }}"
         echo "🐳 Deployment: Docker Compose"
-        echo "📱 HTTP: http://${{ secrets.SERVER_HOST }}:${{ secrets.PROD_HTTP_PORT }}"
         echo "🔒 HTTPS: https://${{ secrets.SERVER_HOST }}:${{ secrets.PROD_HTTPS_PORT }}"
 
   # Notification

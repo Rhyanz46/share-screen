@@ -12,11 +12,8 @@ This document describes the required GitHub secrets for deploying the share-scre
 - `SERVER_HOST` - Production server hostname/IP
 - `DEPLOY_PATH` - Deployment path on production server
 
-### Production Environment Secrets (REQUIRED - NO DEFAULTS)
-- `PROD_PORT` - Application port (e.g., 8080)
-- `PROD_HTTP_PORT` - HTTP port mapping (e.g., 8080)
+### Production Environment Secrets (REQUIRED - HTTPS ONLY)
 - `PROD_HTTPS_PORT` - HTTPS port mapping (e.g., 8443)
-- `PROD_ENABLE_HTTPS` - Enable HTTPS (true/false)
 - `PROD_STUN_SERVER` - STUN server URL (e.g., stun:stun.l.google.com:19302)
 - `PROD_TOKEN_EXPIRY` - Token expiry duration (e.g., 30m)
 - `PROD_TLS_CERT_FILE` - TLS certificate file path (e.g., /certs/server.crt)
@@ -57,10 +54,7 @@ The CI/CD pipeline includes production environment validation that:
 
 🌍 Production Environment Check:
   ✅ All required secrets configured
-  - PROD_PORT: ✅ Set
-  - PROD_HTTP_PORT: ✅ Set
   - PROD_HTTPS_PORT: ✅ Set
-  - PROD_ENABLE_HTTPS: ✅ Set
   - PROD_STUN_SERVER: ✅ Set
   - PROD_TOKEN_EXPIRY: ✅ Set
   - PROD_TLS_CERT_FILE: ✅ Set
