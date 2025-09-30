@@ -55,3 +55,6 @@ coverage.out
 
 # Claude
 .cla*
+
+scan.sh
+.scannerwork

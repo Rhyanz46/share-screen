@@ -333,10 +333,15 @@ jobs:
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "
           cd ${{ secrets.DEPLOY_PATH }}
 
-          # Stop existing containers
+          echo '🔍 Current docker-compose.yml content:'
+          head -10 docker-compose.yml
+
+          echo ''
+          echo '🛑 Stopping existing containers...'
           docker compose down || true
 
-          # Set environment variables from GitHub secrets (HTTPS ONLY)
+          echo ''
+          echo '🔧 Setting environment variables...'
           export PORT=${{ secrets.PROD_HTTPS_PORT }}
           export HTTPS_PORT=${{ secrets.PROD_HTTPS_PORT }}
           export ENABLE_HTTPS=true
@@ -345,8 +350,23 @@ jobs:
           export TLS_CERT_FILE='${{ secrets.PROD_TLS_CERT_FILE }}'
           export TLS_KEY_FILE='${{ secrets.PROD_TLS_KEY_FILE }}'
 
-          # Build and start containers with environment variables
+          echo 'Environment variables set:'
+          echo 'HTTPS_PORT=' \$HTTPS_PORT
+          echo 'ENABLE_HTTPS=' \$ENABLE_HTTPS
+          echo 'TLS_CERT_FILE=' \$TLS_CERT_FILE
+          echo 'TLS_KEY_FILE=' \$TLS_KEY_FILE
+
+          echo ''
+          echo '🏗️ Building and starting containers...'
           docker compose up -d --build
+
+          echo ''
+          echo '📋 Container status:'
+          docker compose ps
+
+          echo ''
+          echo '📄 Container logs:'
+          docker compose logs
 
           # Wait for containers to be ready
           sleep 15

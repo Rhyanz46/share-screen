@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   share-screen:
     build:
@@ -8,22 +6,21 @@ services:
     container_name: share-screen
     restart: unless-stopped
     ports:
-      - "${HTTP_PORT:-8080}:8080"   # HTTP port
-      - "${HTTPS_PORT:-8443}:8443"  # HTTPS port
+      - "${HTTPS_PORT}:8443"
     environment:
-      - PORT=${PORT:-8080}
-      - STUN_SERVER=${STUN_SERVER:-stun:stun.l.google.com:19302}
-      - TOKEN_EXPIRY=${TOKEN_EXPIRY:-30m}
-      - ENABLE_HTTPS=${ENABLE_HTTPS:-false}
-      - TLS_CERT_FILE=${TLS_CERT_FILE:-/certs/server.crt}
-      - TLS_KEY_FILE=${TLS_KEY_FILE:-/certs/server.key}
+      - PORT=${HTTPS_PORT}
+      - STUN_SERVER=${STUN_SERVER}
+      - TOKEN_EXPIRY=${TOKEN_EXPIRY}
+      - ENABLE_HTTPS=true
+      - TLS_CERT_FILE=${TLS_CERT_FILE}
+      - TLS_KEY_FILE=${TLS_KEY_FILE}
     volumes:
-      - ./certs:/certs:ro  # Mount certificates directory
-      - ./logs:/logs       # Mount logs directory (if needed for future logging)
+      - ./certs:/certs:ro
+      - ./logs:/logs
     networks:
       - share-screen-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8080/ || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://localhost:8443/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -33,22 +30,6 @@ services:
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=100m
-
-  # HTTPS-enabled service (alternative configuration)
-  share-screen-https:
-    extends: share-screen
-    container_name: share-screen-https
-    environment:
-      - PORT=8443
-      - STUN_SERVER=${STUN_SERVER:-stun:stun.l.google.com:19302}
-      - TOKEN_EXPIRY=${TOKEN_EXPIRY:-30m}
-      - ENABLE_HTTPS=true
-      - TLS_CERT_FILE=/certs/server.crt
-      - TLS_KEY_FILE=/certs/server.key
-    profiles:
-      - https
-    healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --no-check-certificate https://localhost:8443/ || exit 1"]
 
 networks:
   share-screen-network:
