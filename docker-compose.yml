@@ -15,7 +15,7 @@ services:
       - TLS_CERT_FILE=${TLS_CERT_FILE}
       - TLS_KEY_FILE=${TLS_KEY_FILE}
     volumes:
-      - ./certs:/certs:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./logs:/logs
     networks:
       - share-screen-network
