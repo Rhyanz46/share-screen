@@ -58,6 +58,40 @@ jobs:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
 
+    - name: 🔍 Validate required secrets for staging
+      run: |
+        echo "🔍 Validating required secrets for staging deployment..."
+
+        # Check required server connection secrets
+        if [ -z "${{ secrets.STAGING_SSH_USER }}" ]; then
+          echo "❌ ERROR: STAGING_SSH_USER secret is not set"
+          exit 1
+        fi
+
+        if [ -z "${{ secrets.STAGING_SSH_PRIVATE_KEY }}" ]; then
+          echo "❌ ERROR: STAGING_SSH_PRIVATE_KEY secret is not set"
+          exit 1
+        fi
+
+        if [ -z "${{ secrets.STAGING_SERVER_HOST }}" ]; then
+          echo "❌ ERROR: STAGING_SERVER_HOST secret is not set"
+          exit 1
+        fi
+
+        if [ -z "${{ secrets.STAGING_DEPLOY_PATH }}" ]; then
+          echo "❌ ERROR: STAGING_DEPLOY_PATH secret is not set"
+          exit 1
+        fi
+
+        echo "✅ All required staging secrets are configured"
+        echo "📊 Optional staging secrets status:"
+        echo "  - STAGING_PORT: ${{ secrets.STAGING_PORT && '✅ Set' || '⚠️ Using default (8081)' }}"
+        echo "  - STAGING_HTTP_PORT: ${{ secrets.STAGING_HTTP_PORT && '✅ Set' || '⚠️ Using default (8081)' }}"
+        echo "  - STAGING_HTTPS_PORT: ${{ secrets.STAGING_HTTPS_PORT && '✅ Set' || '⚠️ Using default (8444)' }}"
+        echo "  - STAGING_ENABLE_HTTPS: ${{ secrets.STAGING_ENABLE_HTTPS && '✅ Set' || '⚠️ Using default (true)' }}"
+        echo "  - STAGING_STUN_SERVER: ${{ secrets.STAGING_STUN_SERVER && '✅ Set' || '⚠️ Using default' }}"
+        echo "  - STAGING_TOKEN_EXPIRY: ${{ secrets.STAGING_TOKEN_EXPIRY && '✅ Set' || '⚠️ Using default (15m)' }}"
+
     - name: 🔐 Setup SSH
       uses: webfactory/ssh-agent@v0.9.0
       with:

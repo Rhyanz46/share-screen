@@ -216,6 +216,40 @@ jobs:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
 
+    - name: 🔍 Validate required secrets
+      run: |
+        echo "🔍 Validating required secrets for production deployment..."
+
+        # Check required server connection secrets
+        if [ -z "${{ secrets.SSH_USER }}" ]; then
+          echo "❌ ERROR: SSH_USER secret is not set"
+          exit 1
+        fi
+
+        if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+          echo "❌ ERROR: SSH_PRIVATE_KEY secret is not set"
+          exit 1
+        fi
+
+        if [ -z "${{ secrets.SERVER_HOST }}" ]; then
+          echo "❌ ERROR: SERVER_HOST secret is not set"
+          exit 1
+        fi
+
+        if [ -z "${{ secrets.DEPLOY_PATH }}" ]; then
+          echo "❌ ERROR: DEPLOY_PATH secret is not set"
+          exit 1
+        fi
+
+        echo "✅ All required secrets are configured"
+        echo "📊 Optional secrets status:"
+        echo "  - PROD_PORT: ${{ secrets.PROD_PORT && '✅ Set' || '⚠️ Using default (8080)' }}"
+        echo "  - PROD_HTTP_PORT: ${{ secrets.PROD_HTTP_PORT && '✅ Set' || '⚠️ Using default (8080)' }}"
+        echo "  - PROD_HTTPS_PORT: ${{ secrets.PROD_HTTPS_PORT && '✅ Set' || '⚠️ Using default (8443)' }}"
+        echo "  - PROD_ENABLE_HTTPS: ${{ secrets.PROD_ENABLE_HTTPS && '✅ Set' || '⚠️ Using default (true)' }}"
+        echo "  - PROD_STUN_SERVER: ${{ secrets.PROD_STUN_SERVER && '✅ Set' || '⚠️ Using default' }}"
+        echo "  - PROD_TOKEN_EXPIRY: ${{ secrets.PROD_TOKEN_EXPIRY && '✅ Set' || '⚠️ Using default (30m)' }}"
+
     - name: 🔐 Setup SSH
       uses: webfactory/ssh-agent@v0.9.0
       with:

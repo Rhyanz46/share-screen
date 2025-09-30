@@ -4,13 +4,17 @@ This document describes the required GitHub secrets for deploying the share-scre
 
 ## Required GitHub Secrets
 
-### Server Connection Secrets
+⚠️ **IMPORTANT**: All required secrets must be configured or deployment will be cancelled automatically.
+
+### Production Server Connection Secrets (REQUIRED)
 - `SSH_USER` - SSH username for production server
 - `SSH_PRIVATE_KEY` - SSH private key for production server
 - `SERVER_HOST` - Production server hostname/IP
 - `DEPLOY_PATH` - Deployment path on production server
 
+### Staging Server Connection Secrets (REQUIRED for staging)
 - `STAGING_SSH_USER` - SSH username for staging server
+- `STAGING_SSH_PRIVATE_KEY` - SSH private key for staging server
 - `STAGING_SERVER_HOST` - Staging server hostname/IP
 - `STAGING_DEPLOY_PATH` - Deployment path on staging server
 
@@ -47,6 +51,26 @@ The deployment workflows will:
 2. **Apply sensible defaults** if optional secrets are not provided
 3. **Pass environment variables** directly to Docker Compose
 
+## Secret Validation
+
+The deployment workflows include automatic validation that:
+
+1. **Checks all required secrets** before starting deployment
+2. **Fails fast** if any required secret is missing
+3. **Shows status** of optional secrets (set vs using defaults)
+4. **Prevents partial deployments** due to missing configuration
+
+### Validation Output Example:
+```
+🔍 Validating required secrets for production deployment...
+✅ All required secrets are configured
+📊 Optional secrets status:
+  - PROD_PORT: ⚠️ Using default (8080)
+  - PROD_HTTP_PORT: ✅ Set
+  - PROD_HTTPS_PORT: ✅ Set
+  - PROD_ENABLE_HTTPS: ⚠️ Using default (true)
+```
+
 ## Security Benefits
 
 - ✅ **No sensitive data** in repository
@@ -54,6 +78,7 @@ The deployment workflows will:
 - ✅ **Encrypted storage** in GitHub
 - ✅ **Access control** via GitHub permissions
 - ✅ **No .env files** in production servers
+- ✅ **Pre-deployment validation** prevents failed deployments
 
 ## Docker Compose Integration
 
